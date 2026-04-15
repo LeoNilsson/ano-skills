@@ -1,0 +1,8 @@
+{
+  "name": "ano-skills",
+  "description": "Claude Code skills for working with Ano — handles structured payloads from the Ano desktop app's Send to Shell gesture",
+  "author": {
+    "name": "Ano",
+    "email": "hello@ano.dev"
+  }
+}
