@@ -86,31 +86,48 @@ ano tables get <table-id>
 ```bash
 ano tables query <table-id>
 ano tables query <table-id> --limit 10
+ano tables query <table-id> --filter '{"field_id": "<id>", "operator": "eq", "value": "open"}'
+ano tables query <table-id> --sort '{"field_id": "<id>", "direction": "asc"}'
+ano tables query <table-id> --include-archived
 ```
+
+Filter operators: `eq`, `neq`, `contains`, `gt`, `lt`, `gte`, `lte`, `in`, `is_empty`, `is_not_empty`.
+
+**Important**: Filters and field values use **field definition IDs** (UUIDs), not display names. Call `ano tables get <table-id>` first to see the schema and get the field IDs.
 
 ### Create a table
 
 ```bash
-ano tables create "Bug Tracker" --fields '{"status": "select", "priority": "select", "assignee": "user"}'
+ano tables create "Bug Tracker" --template default   # includes status, priority, assignee
+ano tables create "Simple List" --template blank      # title only
+ano tables create "Bugs" --prefix "BUG"              # custom item ID prefix (2-5 uppercase letters)
 ```
 
 ### Create an item
 
 ```bash
-ano tables create-item --table <table-id> --data '{"title": "Fix login bug", "status": "open"}'
+ano tables create-item --table <table-id> --data '{"<field-def-id>": "value", ...}'
 ```
+
+Field values are keyed by field definition ID (from `get_table` schema). Supported types: string, number, boolean, string array, null.
 
 ### Update an item
 
 ```bash
-ano tables update-item <item-id> --data '{"status": "closed"}'
+ano tables update-item <item-id> --data '{"<field-def-id>": "new value"}'
+ano tables update-item <item-id> --archive       # archive item
+ano tables update-item <item-id> --unarchive      # restore item
 ```
+
+Only provided fields are updated (partial patch). Set a field to `null` to clear it.
 
 ### Comment on an item
 
 ```bash
 ano tables comment <item-id> "Fixed in PR #853"
 ```
+
+Plain text, max 4000 chars. Attributed to the authenticated user.
 
 ## Workspaces
 

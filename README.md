@@ -1,11 +1,14 @@
-# @ano-connect/skills
+# ano-skills
 
 Claude Code skills for the [Ano](https://ano.dev) desktop app.
 
 ## Install
 
-```bash
-claude plugin add @ano-connect/skills
+In Claude Code:
+
+```
+/plugin marketplace add LeoNilsson/ano-skills
+/plugin install ano-skills@ano-skills
 ```
 
 ## What's included

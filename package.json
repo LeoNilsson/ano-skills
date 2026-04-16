@@ -1,6 +1,6 @@
 {
-  "name": "@ano-connect/skills",
-  "version": "0.2.2",
+  "name": "@ano-chat/skills",
+  "version": "0.2.3",
   "description": "Claude Code skills for the Ano desktop app",
   "license": "MIT",
   "files": [
