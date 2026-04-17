@@ -2,7 +2,7 @@
 name: ano-cli
 description: |
   CLI for Ano team communication. Channels, messages, DMs, users, workspaces,
-  search, real-time streaming, and agent setup. Use for ANY Ano action.
+  tables, search, real-time streaming, and agent setup. Use for ANY Ano action.
 triggers:
   - send a message
   - send message to
@@ -19,6 +19,16 @@ triggers:
   - list users
   - list members
   - list workspaces
+  - list tables
+  - show tables
+  - query table
+  - read table
+  - create table
+  - add row
+  - add table item
+  - update row
+  - update table item
+  - comment on table item
   - ano login
   - ano auth
   - ano connect
@@ -40,7 +50,8 @@ argument-hint: "[command] [args...]"
 # Ano CLI — Agent Skill
 
 CLI for Ano team communication. Read/send messages, list channels and members,
-search conversations, stream real-time events, and manage agent integrations.
+read and write tables, search conversations, stream real-time events, and
+manage agent integrations.
 
 ## Agent Invariants
 
@@ -58,6 +69,10 @@ search conversations, stream real-time events, and manage agent integrations.
 8. **Reply in threads** to keep channels clean. Use `--thread <message_id>`.
 9. **Follow breadcrumbs.** JSON responses include suggested next commands.
 10. **Run `ano doctor`** before escalating connectivity issues.
+11. **Fetch a table's schema before writing to it.** `ano tables get <table-id> --agent`
+    returns the field-definition IDs. `create-item` / `update-item` require the
+    `--fields` JSON to be keyed by field-definition ID, not by the human-readable
+    field name.
 
 ## Output Modes
 
@@ -137,12 +152,23 @@ ano commands --json                 # Full command catalog
 | Send DM (by name)   | `ano dm send "text" --to "Name" --agent`                              |
 | Send DM (by email)  | `ano dm send "text" --email user@co.com --agent`                      |
 | Send DM (by ID)     | `ano dm send "text" --user-id <id> --agent`                           |
+| **Tables**          |                                                                       |
+| List tables         | `ano tables list --agent`                                             |
+| Get table + schema  | `ano tables get <table-id> --agent`                                   |
+| Query items         | `ano tables query <table-id> --agent`                                 |
+| Query (filtered)    | `ano tables query <table-id> --filter '<json-array>' --agent`         |
+| Query (sorted)      | `ano tables query <table-id> --sort '<json>' --agent`                 |
+| Create table        | `ano tables create "<name>" --agent`                                  |
+| Create item         | `ano tables create-item --table <id> --fields '<json>' --agent`       |
+| Update item         | `ano tables update-item <item-id> --fields '<json>' --agent`          |
+| Archive item        | `ano tables update-item <item-id> --archive --agent`                  |
+| Comment on item     | `ano tables comment <item-id> "body" --agent`                         |
 | **Real-time**       |                                                                       |
 | Start SSE bridge    | `ano connect`                                                         |
 | Bridge + agent mode | `ano connect --openclaw <url>`                                        |
 | Bridge + health     | `ano connect --health-port 8080`                                      |
 | Install service     | `ano connect install-service`                                         |
-| Remove service      | `ano connect uninstall-service --workspace <name>`                    |
+| Remove service      | `ano connect uninstall-service --service-name <name-or-hash>`         |
 | **Diagnostics**     |                                                                       |
 | Full diagnostics    | `ano doctor --agent`                                                  |
 | Command catalog     | `ano commands --json`                                                 |
@@ -171,6 +197,21 @@ Want to send something?
 ├── Reply in thread → add --thread <msg_id>
 ├── With @mention → add --mention <user_id>
 └── DM someone → ano dm send "text" --to "Name" --agent
+```
+
+### Working with Tables
+
+```
+Need structured data (lists, databases, rows)?
+├── What tables exist?   → ano tables list --agent
+├── Schema + field IDs?  → ano tables get <table-id> --agent
+├── Read rows?           → ano tables query <table-id> --agent
+├── Filter rows?         → ano tables query <table-id> --filter '[{"field_id":"f1","operator":"eq","value":"done"}]' --agent
+├── Add a row?           → ano tables get <table-id> --agent   (first, to learn field IDs)
+│                        → ano tables create-item --table <table-id> --fields '{"<field_id>":"..."}' --agent
+├── Edit a row?          → ano tables update-item <item-id> --fields '{"<field_id>":"..."}' --agent
+├── Archive a row?       → ano tables update-item <item-id> --archive --agent
+└── Comment on a row?    → ano tables comment <item-id> "body text" --agent
 ```
 
 ### Setting Up Agent Access

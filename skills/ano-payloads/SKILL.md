@@ -46,21 +46,25 @@ A chat message from a channel or DM.
 
 ### thread
 
-A reference to an entire thread.
+A reference to an entire thread. Serialized as `<thread ... />` (self-closing, no children).
 
+- `id`, `url` — thread identifiers
+- `channel_id`, `channel_name` — the containing channel
 - `root_message_id` — the thread's root message
 - `message_count` — how many messages are in the thread
 
 ### file
 
-An attached file.
+An attached file. Serialized as `<file ... />` (self-closing, no children).
 
+- `id`, `url` — file identifiers
 - `filename`, `file_type`, `file_size` — file metadata
 
 ### channel
 
-A reference to a channel.
+A reference to a channel. Serialized as `<channel ... />` (self-closing, no children).
 
+- `id`, `url` — channel identifiers
 - `name` — the channel name
 
 ## How to Respond
