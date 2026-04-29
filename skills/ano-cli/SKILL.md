@@ -218,8 +218,9 @@ Choose:
   `--endpoint https://api-staging.ano.dev`.
 - Otherwise → omit the flag (CLI defaults to `https://api.ano.dev`, which
   is what real users want).
-- If the user asks once and you're unsure, ask via AskUserQuestion: "Are
-  you connecting to production or staging?"
+- When unsure (e.g. the user is a developer and the request is ambiguous
+  between envs), ask via AskUserQuestion: "Are you connecting to production
+  or staging?"
 
 ### Decision tree
 
@@ -242,9 +243,7 @@ Got exit code 3 (AUTH) on any command?
 
 ### What the orchestrator MUST do
 
-- Pick the right `--endpoint` to match the user's account. If you don't know,
-  default to `https://api.ano.dev` (production); the user will tell you if
-  they wanted staging.
+- Pick `--endpoint` per the heuristic in "Pick the right --endpoint" above.
 - Treat `--print-workspaces` stdout as the canonical workspace list. Don't
   hard-code IDs.
 - Treat `auth complete --workspace-id <id>` stdout as machine-readable
