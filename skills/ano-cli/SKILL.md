@@ -64,7 +64,7 @@ manage agent integrations.
 4. **Respect rate limits.** 60 requests/minute. Exit code 5 = rate limited.
    Wait 10+ seconds before retrying.
 5. **Check exit codes.** Non-zero = failure. Parse the error envelope.
-6. **Never expose API keys.** Don't log or include `ano_cwk_*` keys in output.
+6. **Never expose API keys.** Don't log or include `ano_cwk_*` or `ano_usr_*` keys in output.
 7. **Content supports markdown.** Bold, links, code blocks, lists all work.
 8. **Reply in threads** to keep channels clean. Use `--thread <message_id>`.
 9. **Follow breadcrumbs.** JSON responses include suggested next commands.
@@ -73,6 +73,9 @@ manage agent integrations.
     returns the field-definition IDs. `create-item` / `update-item` require the
     `--fields` JSON to be keyed by field-definition ID, not by the human-readable
     field name.
+12. **On exit code 3 (AUTH), run the Triggered Auth flow before surfacing the error.**
+    Don't dump "run `ano auth login`" on the user as a manual step — orchestrate it
+    inline using `--print-workspaces` + `auth complete`. See "Triggered Auth" below.
 
 ## Output Modes
 
@@ -130,50 +133,113 @@ ano commands --json                 # Full command catalog
 
 ## Quick Reference
 
-| Task                | Command                                                               |
-| ------------------- | --------------------------------------------------------------------- |
-| **Auth**            |                                                                       |
-| Save API key        | `ano auth login --key <key>`                                          |
-| Check auth          | `ano auth status --agent`                                             |
-| Remove credentials  | `ano auth logout`                                                     |
-| **Read**            |                                                                       |
-| List channels       | `ano channels list --agent`                                           |
-| List users          | `ano users list --agent`                                              |
-| List workspaces     | `ano workspaces list --agent`                                         |
-| Read messages       | `ano messages read --channel <id> --agent`                            |
-| Read (limited)      | `ano messages read --channel <id> --limit 10 --agent`                 |
-| Search messages     | `ano messages search "query" --agent`                                 |
-| Search (limited)    | `ano messages search "query" --limit 5 --agent`                       |
-| Show URL content    | `ano show <url> --agent`                                              |
-| **Write**           |                                                                       |
-| Send message        | `ano messages send "text" --channel <id> --agent`                     |
-| Reply in thread     | `ano messages send "text" --channel <id> --thread <msg_id> --agent`   |
-| Send with @mention  | `ano messages send "text" --channel <id> --mention <user_id> --agent` |
-| Send DM (by name)   | `ano dm send "text" --to "Name" --agent`                              |
-| Send DM (by email)  | `ano dm send "text" --email user@co.com --agent`                      |
-| Send DM (by ID)     | `ano dm send "text" --user-id <id> --agent`                           |
-| **Tables**          |                                                                       |
-| List tables         | `ano tables list --agent`                                             |
-| Get table + schema  | `ano tables get <table-id> --agent`                                   |
-| Query items         | `ano tables query <table-id> --agent`                                 |
-| Query (filtered)    | `ano tables query <table-id> --filter '<json-array>' --agent`         |
-| Query (sorted)      | `ano tables query <table-id> --sort '<json>' --agent`                 |
-| Create table        | `ano tables create "<name>" --agent`                                  |
-| Create item         | `ano tables create-item --table <id> --fields '<json>' --agent`       |
-| Update item         | `ano tables update-item <item-id> --fields '<json>' --agent`          |
-| Archive item        | `ano tables update-item <item-id> --archive --agent`                  |
-| Comment on item     | `ano tables comment <item-id> "body" --agent`                         |
-| **Real-time**       |                                                                       |
-| Start SSE bridge    | `ano connect`                                                         |
-| Bridge + agent mode | `ano connect --openclaw <url>`                                        |
-| Bridge + health     | `ano connect --health-port 8080`                                      |
-| Install service     | `ano connect install-service`                                         |
-| Remove service      | `ano connect uninstall-service --service-name <name-or-hash>`         |
-| **Diagnostics**     |                                                                       |
-| Full diagnostics    | `ano doctor --agent`                                                  |
-| Command catalog     | `ano commands --json`                                                 |
-| Setup Claude        | `ano setup claude`                                                    |
-| Setup OpenClaw      | `ano setup openclaw`                                                  |
+| Task                                    | Command                                                               |
+| --------------------------------------- | --------------------------------------------------------------------- |
+| **Auth**                                |                                                                       |
+| Save API key                            | `ano auth login --key <key>`                                          |
+| Browser login                           | `ano auth login --workspace-id <id>` (requires CLI v2.1.0+)           |
+| Triggered auth (orchestrators) — step 1 | `ano auth login --print-workspaces` (CLI v2.2.0+)                     |
+| Triggered auth — step 2                 | `ano auth complete --workspace-id <id>` (CLI v2.2.0+)                 |
+| Check auth                              | `ano auth status --agent`                                             |
+| Remove credentials                      | `ano auth logout`                                                     |
+| **Read**                                |                                                                       |
+| List channels                           | `ano channels list --agent`                                           |
+| List users                              | `ano users list --agent`                                              |
+| List workspaces                         | `ano workspaces list --agent`                                         |
+| Read messages                           | `ano messages read --channel <id> --agent`                            |
+| Read (limited)                          | `ano messages read --channel <id> --limit 10 --agent`                 |
+| Search messages                         | `ano messages search "query" --agent`                                 |
+| Search (limited)                        | `ano messages search "query" --limit 5 --agent`                       |
+| Show URL content                        | `ano show <url> --agent`                                              |
+| **Write**                               |                                                                       |
+| Send message                            | `ano messages send "text" --channel <id> --agent`                     |
+| Reply in thread                         | `ano messages send "text" --channel <id> --thread <msg_id> --agent`   |
+| Send with @mention                      | `ano messages send "text" --channel <id> --mention <user_id> --agent` |
+| Send DM (by name)                       | `ano dm send "text" --to "Name" --agent`                              |
+| Send DM (by email)                      | `ano dm send "text" --email user@co.com --agent`                      |
+| Send DM (by ID)                         | `ano dm send "text" --user-id <id> --agent`                           |
+| **Tables**                              |                                                                       |
+| List tables                             | `ano tables list --agent`                                             |
+| Get table + schema                      | `ano tables get <table-id> --agent`                                   |
+| Query items                             | `ano tables query <table-id> --agent`                                 |
+| Query (filtered)                        | `ano tables query <table-id> --filter '<json-array>' --agent`         |
+| Query (sorted)                          | `ano tables query <table-id> --sort '<json>' --agent`                 |
+| Create table                            | `ano tables create "<name>" --agent`                                  |
+| Create item                             | `ano tables create-item --table <id> --fields '<json>' --agent`       |
+| Update item                             | `ano tables update-item <item-id> --fields '<json>' --agent`          |
+| Archive item                            | `ano tables update-item <item-id> --archive --agent`                  |
+| Comment on item                         | `ano tables comment <item-id> "body" --agent`                         |
+| **Real-time**                           |                                                                       |
+| Start SSE bridge                        | `ano connect`                                                         |
+| Bridge + agent mode                     | `ano connect --openclaw <url>`                                        |
+| Bridge + health                         | `ano connect --health-port 8080`                                      |
+| Install service                         | `ano connect install-service`                                         |
+| Remove service                          | `ano connect uninstall-service --service-name <name-or-hash>`         |
+| **Diagnostics**                         |                                                                       |
+| Full diagnostics                        | `ano doctor --agent`                                                  |
+| Command catalog                         | `ano commands --json`                                                 |
+| Setup Claude                            | `ano setup claude`                                                    |
+| Setup OpenClaw                          | `ano setup openclaw`                                                  |
+
+## Triggered Auth (when CLI is unauthenticated)
+
+If `ano <command> --agent` returns exit code **3 (AUTH)** — DO NOT dump the
+error and the `ano auth login` hint on the user. Run the triggered-auth flow
+inline. The user gets ONE browser click + one in-chat workspace pick, instead
+of a context switch and a manual setup detour.
+
+**Requires CLI v2.2.0+.** If the installed CLI is older, fall back to telling
+the user to upgrade (`npm install -g @ano-chat/cli@latest`) before retrying.
+
+### Decision tree
+
+```
+Got exit code 3 (AUTH) on any command?
+├── 1. ano auth login --print-workspaces --endpoint <env>
+│      • Browser opens; user clicks Authorize once.
+│      • CLI caches the access token to ~/.config/ano/.session (5-min TTL).
+│      • CLI prints {"workspaces":[{"id":"...","name":"..."}, ...]} to stdout.
+│      • CLI exits without minting a key.
+├── 2. Parse the workspaces JSON from stdout.
+├── 3. Render an in-chat picker (e.g. AskUserQuestion in Claude Code) with
+│      one option per workspace name. Wait for the user's pick.
+├── 4. ano auth complete --workspace-id <picked-id>
+│      • CLI reads the cached token, mints the key, writes credentials.json,
+│        deletes the cached token.
+│      • Stdout: {"ok":true,"profile":"default","workspace":{...}}
+└── 5. Retry the original command. It should now succeed.
+```
+
+### What the orchestrator MUST do
+
+- Pick the right `--endpoint` to match the user's account. If you don't know,
+  default to `https://api.ano.dev` (production); the user will tell you if
+  they wanted staging.
+- Treat `--print-workspaces` stdout as the canonical workspace list. Don't
+  hard-code IDs.
+- Treat `auth complete --workspace-id <id>` stdout as machine-readable
+  (it's a single JSON line). Parse `{ok, profile, workspace}`.
+- Surface the original task as soon as auth succeeds — don't make the user
+  re-issue the request.
+
+### What the orchestrator MUST NOT do
+
+- Don't run `ano auth login` (no flags) — it requires a TTY for the workspace
+  picker, which orchestrators don't have. Use the `--print-workspaces` /
+  `auth complete` pair instead.
+- Don't capture or log the access token or the minted CLI key. Both are
+  short-lived/sensitive.
+- Don't re-run `--print-workspaces` if `auth complete` fails — the cached
+  token is still valid for 5 minutes; ask the user to verify the workspace
+  pick instead.
+
+### Why two steps
+
+The CLI's interactive workspace picker requires `process.stdin.isTTY`.
+Claude Code's bash bridge (and most orchestrators) pipe stdin from the
+parent process — not a TTY. The `--print-workspaces` / `auth complete`
+pair lets the orchestrator render its OWN picker while the CLI handles
+OAuth and key minting.
 
 ## Decision Trees
 
@@ -218,6 +284,11 @@ Need structured data (lists, databases, rows)?
 
 ```
 ├── Have API key? → ano auth login --key <key>
+├── No key, need browser-based login (TTY) → ano auth login [--workspace-id <id>]
+├── No key, need browser-based login (non-TTY orchestrator)
+│   → ano auth login --print-workspaces  (step 1)
+│   → ano auth complete --workspace-id <id>  (step 2)
+├── Hit exit code 3 mid-task → see "Triggered Auth" above
 ├── One-off commands → use ano messages/channels/users directly
 ├── Persistent bridge → ano connect install-service
 ├── OpenClaw agent → ano connect --openclaw <url>
@@ -285,16 +356,16 @@ Send commands on stdin:
 
 ## Exit Codes
 
-| Code | Name       | Meaning             | Fix                          |
-| ---- | ---------- | ------------------- | ---------------------------- |
-| 0    | OK         | Success             | —                            |
-| 1    | USAGE      | Bad arguments       | `ano <cmd> --help`           |
-| 2    | NOT_FOUND  | Resource missing    | Verify ID/URL                |
-| 3    | AUTH       | Invalid/missing key | `ano auth login --key <key>` |
-| 4    | FORBIDDEN  | No permission       | Check key scopes             |
-| 5    | RATE_LIMIT | 60/min exceeded     | Wait 10s, retry              |
-| 6    | NETWORK    | Connection failed   | `ano doctor --agent`         |
-| 7    | API_ERROR  | Server error        | Retry                        |
+| Code | Name       | Meaning             | Fix                                                          |
+| ---- | ---------- | ------------------- | ------------------------------------------------------------ |
+| 0    | OK         | Success             | —                                                            |
+| 1    | USAGE      | Bad arguments       | `ano <cmd> --help`                                           |
+| 2    | NOT_FOUND  | Resource missing    | Verify ID/URL                                                |
+| 3    | AUTH       | Invalid/missing key | Run **Triggered Auth** flow (see above) — don't dump on user |
+| 4    | FORBIDDEN  | No permission       | Check key scopes                                             |
+| 5    | RATE_LIMIT | 60/min exceeded     | Wait 10s, retry                                              |
+| 6    | NETWORK    | Connection failed   | `ano doctor --agent`                                         |
+| 7    | API_ERROR  | Server error        | Retry                                                        |
 
 ## Authentication
 
@@ -306,8 +377,15 @@ Resolution chain (highest priority first):
 4. `~/.config/ano/credentials.json` (global, via `ano auth login`)
 
 ```bash
-# Save credentials
+# Save credentials (programmatic — paste a key)
 ano auth login --key ano_cwk_... --endpoint https://api-staging.ano.dev
+
+# Browser login (interactive TTY)
+ano auth login --workspace-id <id>
+
+# Browser login (non-TTY orchestrator) — see "Triggered Auth" section
+ano auth login --print-workspaces
+ano auth complete --workspace-id <id>
 
 # Check
 ano auth status --agent
@@ -321,7 +399,9 @@ ano auth login --key ano_cwk_... --endpoint https://api-staging.ano.dev --profil
 ```
 ~/.config/ano/
 ├── credentials.json    # API keys per profile
-└── config.json         # Global defaults
+├── config.json         # Global defaults
+└── .session            # Short-lived OAuth token cache (between
+                        # `auth login --print-workspaces` and `auth complete`)
 
 .ano/
 └── config.json         # Project-level overrides (workspace_id, endpoint)
