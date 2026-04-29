@@ -189,7 +189,37 @@ inline. The user gets ONE browser click + one in-chat workspace pick, instead
 of a context switch and a manual setup detour.
 
 **Requires CLI v2.2.0+.** If the installed CLI is older, fall back to telling
-the user to upgrade (`npm install -g @ano-chat/cli@latest`) before retrying.
+the user to upgrade (`npm install -g @ano-chat/cli@latest --force`) before
+retrying.
+
+### Detect the installed version first
+
+Before invoking the new flags, run `ano --version`. The output is a single
+semver line (e.g. `2.2.0`). Compare:
+
+- Major < 2 OR (major == 2 AND minor < 2) → CLI is too old. Tell the user
+  to upgrade: `npm install -g @ano-chat/cli@latest --force`. Don't try to
+  invoke the new flags — they don't exist and the CLI errors with
+  "unknown option."
+- Major == 2 AND minor >= 2 → triggered auth is supported.
+- Major >= 3 → assume forward-compatibility unless you've seen a breaking
+  change in the changelog.
+
+If the CLI binary is missing entirely (`ano: command not found`), tell
+the user to install it first: `npm install -g @ano-chat/cli`.
+
+### Pick the right --endpoint
+
+The `--print-workspaces` and `auth complete` commands accept `--endpoint`.
+Choose:
+
+- If the user mentions **staging**, **api-staging**, **api-staging.ano.dev**,
+  **ano-staging**, or anything indicating a non-prod environment → use
+  `--endpoint https://api-staging.ano.dev`.
+- Otherwise → omit the flag (CLI defaults to `https://api.ano.dev`, which
+  is what real users want).
+- If the user asks once and you're unsure, ask via AskUserQuestion: "Are
+  you connecting to production or staging?"
 
 ### Decision tree
 
