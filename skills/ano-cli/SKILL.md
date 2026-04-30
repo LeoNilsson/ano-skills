@@ -238,7 +238,9 @@ Got exit code 3 (AUTH) on any command?
 │      • CLI reads the cached token, mints the key, writes credentials.json,
 │        deletes the cached token.
 │      • Stdout: {"ok":true,"profile":"default","workspace":{...}}
-└── 5. Retry the original command. It should now succeed.
+├── 5. Retry the original command. It should now succeed.
+└── 6. If step 4 returns exit code 3 ("expired"), the user took >5 min;
+       loop back to step 1 to start a fresh OAuth.
 ```
 
 ### What the orchestrator MUST do
@@ -258,9 +260,13 @@ Got exit code 3 (AUTH) on any command?
   `auth complete` pair instead.
 - Don't capture or log the access token or the minted CLI key. Both are
   short-lived/sensitive.
-- Don't re-run `--print-workspaces` if `auth complete` fails — the cached
-  token is still valid for 5 minutes; ask the user to verify the workspace
-  pick instead.
+- Don't re-run `--print-workspaces` if `auth complete` fails on a NON-auth
+  error (network blip during mint, invalid workspace id) — the cached token
+  is still valid for 5 minutes; just retry `auth complete` or ask the user
+  to verify the workspace pick. **BUT** if `auth complete` returns exit
+  code 3 (AUTH) or its error mentions "expired" / "no cached login session",
+  the 5-minute TTL has elapsed and you MUST re-run `--print-workspaces` to
+  start a fresh OAuth round before retrying.
 
 ### Why two steps
 
