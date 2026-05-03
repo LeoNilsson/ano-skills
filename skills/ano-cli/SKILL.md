@@ -199,6 +199,12 @@ ano commands --json                 # Full command catalog
 | Resume                                  | `ano automation resume <id>`                                                 |
 | Delete                                  | `ano automation delete <id>`                                                 |
 | Webhook setup/rotate                    | `ano automation webhook-setup <id> --agent`                                  |
+| Validate compiled plan (offline)        | `ano automation validate --file plan.json --agent`                           |
+| **Coworkers (external integrations)**   |                                                                              |
+| Test outbound webhook                   | `ano coworker webhook-test <coworker-id> --agent`                            |
+| **Workspaces**                          |                                                                              |
+| List workspaces                         | `ano workspaces list --agent`                                                |
+| Set active workspace                    | `ano workspaces use <workspace-id>`                                          |
 | **Real-time**                           |                                                                              |
 | Start SSE bridge                        | `ano connect`                                                                |
 | Bridge + agent mode                     | `ano connect --openclaw <url>`                                               |
