@@ -29,6 +29,16 @@ triggers:
   - update row
   - update table item
   - comment on table item
+  - list automations
+  - create automation
+  - new automation
+  - edit automation
+  - pause automation
+  - resume automation
+  - delete automation
+  - run automation
+  - automation runs
+  - webhook setup
   - ano login
   - ano auth
   - ano connect
@@ -50,8 +60,12 @@ argument-hint: "[command] [args...]"
 # Ano CLI — Agent Skill
 
 CLI for Ano team communication. Read/send messages, list channels and members,
-read and write tables, search conversations, stream real-time events, and
-manage agent integrations.
+read and write tables, build automations, search conversations, stream
+real-time events, and manage agent integrations.
+
+**The CLI is the canonical surface for Claude Code.** When a user asks you to
+do something in Ano, prefer `ano <command>` over MCP tool calls. MCP is a
+fallback for environments without the CLI installed.
 
 ## Agent Invariants
 
@@ -96,7 +110,7 @@ manage agent integrations.
   "breadcrumbs": [
     {"action": "read_messages", "cmd": "ano messages read --channel <id>", "description": "Read messages"}
   ],
-  "meta": {"timestamp": "...", "version": "0.1.0"}
+  "meta": {"timestamp": "...", "version": "2.4.0"}
 }
 ```
 
@@ -133,53 +147,69 @@ ano commands --json                 # Full command catalog
 
 ## Quick Reference
 
-| Task                                    | Command                                                               |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| **Auth**                                |                                                                       |
-| Save API key                            | `ano auth login --key <key>`                                          |
-| Browser login                           | `ano auth login --workspace-id <id>` (requires CLI v2.1.0+)           |
-| Triggered auth (orchestrators) — step 1 | `ano auth login --print-workspaces` (CLI v2.2.0+)                     |
-| Triggered auth — step 2                 | `ano auth complete --workspace-id <id>` (CLI v2.2.0+)                 |
-| Check auth                              | `ano auth status --agent`                                             |
-| Remove credentials                      | `ano auth logout`                                                     |
-| **Read**                                |                                                                       |
-| List channels                           | `ano channels list --agent`                                           |
-| List users                              | `ano users list --agent`                                              |
-| List workspaces                         | `ano workspaces list --agent`                                         |
-| Read messages                           | `ano messages read --channel <id> --agent`                            |
-| Read (limited)                          | `ano messages read --channel <id> --limit 10 --agent`                 |
-| Search messages                         | `ano messages search "query" --agent`                                 |
-| Search (limited)                        | `ano messages search "query" --limit 5 --agent`                       |
-| Show URL content                        | `ano show <url> --agent`                                              |
-| **Write**                               |                                                                       |
-| Send message                            | `ano messages send "text" --channel <id> --agent`                     |
-| Reply in thread                         | `ano messages send "text" --channel <id> --thread <msg_id> --agent`   |
-| Send with @mention                      | `ano messages send "text" --channel <id> --mention <user_id> --agent` |
-| Send DM (by name)                       | `ano dm send "text" --to "Name" --agent`                              |
-| Send DM (by email)                      | `ano dm send "text" --email user@co.com --agent`                      |
-| Send DM (by ID)                         | `ano dm send "text" --user-id <id> --agent`                           |
-| **Tables**                              |                                                                       |
-| List tables                             | `ano tables list --agent`                                             |
-| Get table + schema                      | `ano tables get <table-id> --agent`                                   |
-| Query items                             | `ano tables query <table-id> --agent`                                 |
-| Query (filtered)                        | `ano tables query <table-id> --filter '<json-array>' --agent`         |
-| Query (sorted)                          | `ano tables query <table-id> --sort '<json>' --agent`                 |
-| Create table                            | `ano tables create "<name>" --agent`                                  |
-| Create item                             | `ano tables create-item --table <id> --fields '<json>' --agent`       |
-| Update item                             | `ano tables update-item <item-id> --fields '<json>' --agent`          |
-| Archive item                            | `ano tables update-item <item-id> --archive --agent`                  |
-| Comment on item                         | `ano tables comment <item-id> "body" --agent`                         |
-| **Real-time**                           |                                                                       |
-| Start SSE bridge                        | `ano connect`                                                         |
-| Bridge + agent mode                     | `ano connect --openclaw <url>`                                        |
-| Bridge + health                         | `ano connect --health-port 8080`                                      |
-| Install service                         | `ano connect install-service`                                         |
-| Remove service                          | `ano connect uninstall-service --service-name <name-or-hash>`         |
-| **Diagnostics**                         |                                                                       |
-| Full diagnostics                        | `ano doctor --agent`                                                  |
-| Command catalog                         | `ano commands --json`                                                 |
-| Setup Claude                            | `ano setup claude`                                                    |
-| Setup OpenClaw                          | `ano setup openclaw`                                                  |
+| Task                                    | Command                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------- |
+| **Auth**                                |                                                                              |
+| Save API key                            | `ano auth login --key <key>`                                                 |
+| Browser login                           | `ano auth login --workspace-id <id>` (requires CLI v2.1.0+)                  |
+| Triggered auth (orchestrators) — step 1 | `ano auth login --print-workspaces` (CLI v2.2.0+)                            |
+| Triggered auth — step 2                 | `ano auth complete --workspace-id <id>` (CLI v2.2.0+)                        |
+| Check auth                              | `ano auth status --agent`                                                    |
+| Remove credentials                      | `ano auth logout`                                                            |
+| **Read**                                |                                                                              |
+| List channels                           | `ano channels list --agent`                                                  |
+| List users                              | `ano users list --agent`                                                     |
+| List workspaces                         | `ano workspaces list --agent`                                                |
+| Read messages                           | `ano messages read --channel <id> --agent`                                   |
+| Read (limited)                          | `ano messages read --channel <id> --limit 10 --agent`                        |
+| Search messages                         | `ano messages search "query" --agent`                                        |
+| Search (limited)                        | `ano messages search "query" --limit 5 --agent`                              |
+| Show URL content                        | `ano show <url> --agent`                                                     |
+| **Write**                               |                                                                              |
+| Send message                            | `ano messages send "text" --channel <id> --agent`                            |
+| Reply in thread                         | `ano messages send "text" --channel <id> --thread <msg_id> --agent`          |
+| Send with @mention                      | `ano messages send "text" --channel <id> --mention <user_id> --agent`        |
+| Send DM (by name)                       | `ano dm send "text" --to "Name" --agent`                                     |
+| Send DM (by email)                      | `ano dm send "text" --email user@co.com --agent`                             |
+| Send DM (by ID)                         | `ano dm send "text" --user-id <id> --agent`                                  |
+| **Tables**                              |                                                                              |
+| List tables                             | `ano tables list --agent`                                                    |
+| Get table + schema                      | `ano tables get <table-id> --agent`                                          |
+| Query items                             | `ano tables query <table-id> --agent`                                        |
+| Query (filtered)                        | `ano tables query <table-id> --filter '<json-array>' --agent`                |
+| Query (sorted)                          | `ano tables query <table-id> --sort '<json>' --agent`                        |
+| Create table                            | `ano tables create "<name>" --agent`                                         |
+| Create item                             | `ano tables create-item --table <id> --fields '<json>' --agent`              |
+| Update item                             | `ano tables update-item <item-id> --fields '<json>' --agent`                 |
+| Archive item                            | `ano tables update-item <item-id> --archive --agent`                         |
+| Comment on item                         | `ano tables comment <item-id> "body" --agent`                                |
+| **Automations (guided)**                |                                                                              |
+| New automation (Claude UX)              | `ano new automation "every weekday 9am post yesterday's signups to #growth"` |
+| Edit automation (Claude UX)             | `ano edit automation <id> "add a Slack notification on failure"`             |
+| **Automations (granular)**              |                                                                              |
+| Compile (no save)                       | `ano automation compile "prompt" --agent`                                    |
+| Create from prompt                      | `ano automation create "prompt" --agent`                                     |
+| Create from JSON                        | `ano automation create-compiled --file plan.json --agent`                    |
+| Update                                  | `ano automation update <id> --name "..." --agent`                            |
+| List                                    | `ano automation list --agent`                                                |
+| Recent runs                             | `ano automation runs <id> --agent`                                           |
+| Test (dry-run)                          | `ano automation run <id> --agent`                                            |
+| Run for real                            | `ano automation run <id> --no-dry-run --agent`                               |
+| Pause                                   | `ano automation pause <id>`                                                  |
+| Resume                                  | `ano automation resume <id>`                                                 |
+| Delete                                  | `ano automation delete <id>`                                                 |
+| Webhook setup/rotate                    | `ano automation webhook-setup <id> --agent`                                  |
+| **Real-time**                           |                                                                              |
+| Start SSE bridge                        | `ano connect`                                                                |
+| Bridge + agent mode                     | `ano connect --openclaw <url>`                                               |
+| Bridge + health                         | `ano connect --health-port 8080`                                             |
+| Install service                         | `ano connect install-service`                                                |
+| Remove service                          | `ano connect uninstall-service --service-name <name-or-hash>`                |
+| **Diagnostics**                         |                                                                              |
+| Full diagnostics                        | `ano doctor --agent`                                                         |
+| Command catalog                         | `ano commands --json`                                                        |
+| Setup Claude                            | `ano setup claude`                                                           |
+| Setup OpenClaw                          | `ano setup openclaw`                                                         |
 
 ## Triggered Auth (when CLI is unauthenticated)
 
@@ -315,6 +345,31 @@ Need structured data (lists, databases, rows)?
 └── Comment on a row?    → ano tables comment <item-id> "body text" --agent
 ```
 
+### Working with Automations
+
+```
+Building or managing an automation?
+├── New automation (recommended) → ano new automation "every weekday 9am ..."
+├── Edit an existing one         → ano edit automation <id> "what changed"
+├── List existing                → ano automation list --agent
+├── See recent runs              → ano automation runs <id> --agent
+├── Test before enabling         → ano automation run <id> --agent  (dry-run)
+├── Fire for real once           → ano automation run <id> --no-dry-run --agent
+├── Pause / resume               → ano automation pause|resume <id>
+├── Webhook trigger setup        → ano automation webhook-setup <id> --agent
+└── Delete (irreversible)        → ano automation delete <id>
+```
+
+The guided `ano new automation` and `ano edit automation` commands are the
+preferred path — they're designed to be invoked by Claude Code and walk the
+user through the spec collaboratively. Use them unless the user has a
+pre-built JSON plan (then `ano automation create-compiled --file plan.json`).
+
+For brand-new automations Claude Code is composing in chat, use the deeper
+"Building Automations Offline" reference further down — it lets you
+assemble the full spec without compile-iterate roundtrips, then submit
+once via `ano automation create-compiled --file -`.
+
 ### Setting Up Agent Access
 
 ```
@@ -388,6 +443,252 @@ Send commands on stdin:
 {"action":"send_dm","recipient_name":"Jane","content":"Hey"}
 {"action":"typing","channel_id":"..."}
 ```
+
+## Building Automations Offline (Build-Before-Talk)
+
+**Lead-time rule:** when a user asks you to create an automation, build the
+**complete spec** in chat first, then submit it to Ano in a single call. Do
+NOT iterate via `automation compile` — that costs an LLM round-trip per
+revision. The full spec language is documented below; you have everything
+you need to design a valid plan offline.
+
+The submission command is:
+
+```bash
+ano automation create-compiled --file - --agent <<'EOF'
+{ ...the full plan JSON, schema below... }
+EOF
+```
+
+It returns `{automation_id, name, enabled: false, ...}`. The automation
+lands in `unconfirmed` state — the user approves it via the Automations
+page or DM in Ano.
+
+### Step 1: Gather workspace context BEFORE designing
+
+You need IDs and names from the user's workspace to fill in the plan. One
+batch of reads, then design offline:
+
+```bash
+ano channels list --agent      # channel IDs (note `is_public`, `has_guests`)
+ano users list --agent         # user IDs + emails for send_dm
+ano workspaces list --agent    # if multi-workspace, confirm which one
+```
+
+If the user mentions a coworker by name ("post as Maya"), also look at the
+coworkers exposed in the workspace context. If the user mentions a SQL or
+HTTP integration ("query our prod Postgres"), check whether the connection
+exists — if not, you'll still emit the action and Ano will surface a
+phantom Connect chip on the Automations page for the user to wire up.
+
+### Step 2: Pick the trigger
+
+There are exactly **five trigger types**. Pick the one that matches and
+fill its `trigger_config`:
+
+| `trigger_type`  | `trigger_config` shape                                             | When to use                                                    |
+| --------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `schedule`      | `{ cron: "0 9 * * 1-5", tz: "Europe/Stockholm" }`                  | Time-based (every weekday 9am, hourly, etc.)                   |
+| `message_match` | `{ channel_id, pattern, sender_id? }`                              | Fire when a message in a channel matches a regex/string        |
+| `mention`       | `{ channel_ids?: string[] }`                                       | Fire when @mentioned (workspace-wide unless channels narrowed) |
+| `channel_event` | `{ channel_id, event_type: "reaction_added"\|"member_joined"... }` | Fire on a channel-level event                                  |
+| `webhook`       | `{}` (config is empty; URL + signing secret minted after save)     | External system POSTs a payload                                |
+
+**Cron grammar (5-field standard):** `minute hour dom mon dow`
+
+- `minute` 0–59, `hour` 0–23, `dom` 1–31 or `*`, `mon` 1–12 or `*`, `dow` 0–6 or `*` (Sun=0)
+- Lists (`1-5`), steps (`*/15`), and ranges (`9-17`) all work
+- Always set `tz` explicitly. Default to the workspace timezone (read from `workspace.timezone`); fall back to `"UTC"` if unknown
+- Examples: `"0 9 * * 1-5"` = 9am every weekday, `"*/15 * * * *"` = every 15 minutes, `"0 */4 * * *"` = top of every 4th hour
+
+### Step 3: Compose the action chain
+
+Five action tools are available. Use the **exact** tool names below
+(verbatim — these are NOT CLI commands, they're runtime tool names the
+automation engine resolves):
+
+| `tool`         | `args` shape                                                                  | Output for chaining            |
+| -------------- | ----------------------------------------------------------------------------- | ------------------------------ |
+| `send_message` | `{ channel_id, content }`                                                     | (none — terminal action)       |
+| `send_dm`      | `{ user_id, content }`                                                        | (none — terminal action)       |
+| `sql_query`    | `{ connection: "<connection_name>", query: "SELECT ..." }`                    | `{{stepN.rows}}` (array)       |
+| `http_request` | `{ connection?: "<name>", method: "GET"\|"POST"\|..., url, headers?, body? }` | `{{stepN.body}}` (parsed JSON) |
+| `run_skill`    | `{ skill_id, args }`                                                          | `{{stepN.output}}`             |
+
+**Template variables (chaining):** earlier-step outputs are interpolated
+into later-step args using `{{stepN.PATH}}`:
+
+- `{{step1.rows.length}}` — count of SQL rows
+- `{{step1.rows.0.name}}` — first row's `name` column
+- `{{step2.body.user.email}}` — nested field from an HTTP response
+
+`stepN` is **1-indexed** in the order they appear in `actions[]`.
+
+**Sender attribution** (`sender_kind` at the top level of the plan):
+
+- `bot` (default) — generic Ano bot avatar
+- `coworker` — pair with `coworker_id`; messages appear from that coworker
+- `human` — posts as the human owner; **the safety lint warns on this**
+  because channel members may think the human typed it manually
+
+`bot_avatar` is an optional single emoji (e.g. `"📊"`).
+
+### Step 4: Apply safety rules BEFORE submitting
+
+Pre-check the plan against these rules — they're what Ano's safety lint
+will warn on. Fixing them in chat is faster than after-the-fact warnings.
+
+| Rule                                 | What to do                                                                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `SELECT *` going to a public channel | Always add a `LIMIT N` (typically 50). Unbounded `SELECT *` → public channel = channel flood.                                |
+| Sensitive columns in SQL             | Avoid `password`, `secret`, `token`, `api_key`, `salt`, `private_key`, `credit_card`, `ssn`. Mask at query time or refuse.   |
+| Posting as `human`                   | Default to `bot` unless the user explicitly asks. If `human`, warn the user that channel members will see it as their voice. |
+| Public-channel destination           | If posting to a public channel, mention this to the user (they may want a private channel instead).                          |
+| Guest-visible channel                | If `has_guests=true` on the destination channel, flag it — guests will see the output.                                       |
+| Connection name not found            | Still emit the action; warn the user the connection chip will be phantom until they wire it up.                              |
+
+### Step 5: Interview script
+
+When the user says "create an automation", run this interview in chat
+**before** any Ano calls. The goal is to walk away with every field of
+the plan filled in:
+
+1. **Trigger:**
+   - "When should this fire — on a schedule, when someone messages a channel, when you're @mentioned, on a channel event, or when an external system pings a webhook?"
+   - If schedule: "What cadence and at what time / timezone?"
+   - If message_match: "Which channel? What pattern should match?"
+2. **Actions:**
+   - "What should it do? Walk me through the steps in order."
+   - For each step, identify which of the 5 tools applies. If the user says "post in Slack" they probably mean `send_message` to an Ano channel.
+   - For SQL/HTTP steps, ask which connection.
+   - If outputs from earlier steps need to flow in, build the `{{stepN...}}` reference yourself — don't ask the user to write template syntax.
+3. **Sender:** "Should this post as a bot, as one of your coworkers (which one?), or as you?"
+4. **Name:** propose one based on the prompt; let the user override.
+5. **Recap:** read the plan back in plain English. **Don't show JSON** unless asked. Confirm.
+6. **Submit:** one shot — `ano automation create-compiled --file - --agent`.
+
+### Worked examples
+
+#### Example 1 — Daily digest from Postgres
+
+User: _"Every weekday at 9am Stockholm time, post the count of new signups from yesterday to #growth."_
+
+```json
+{
+  "trigger_type": "schedule",
+  "trigger_config": { "cron": "0 9 * * 1-5", "tz": "Europe/Stockholm" },
+  "actions": [
+    {
+      "tool": "sql_query",
+      "args": {
+        "connection": "neon-prod",
+        "query": "SELECT COUNT(*) AS n FROM users WHERE created_at::date = CURRENT_DATE - 1 LIMIT 1"
+      }
+    },
+    {
+      "tool": "send_message",
+      "args": {
+        "channel_id": "ch_abc123",
+        "content": "📊 New signups yesterday: {{step1.rows.0.n}}"
+      }
+    }
+  ],
+  "name": "Daily signup count → #growth",
+  "sender_kind": "bot",
+  "bot_avatar": "📊"
+}
+```
+
+#### Example 2 — Mention-triggered triage
+
+User: _"When @mentioned in #support, query our HelpScout API and DM me the open ticket count."_
+
+```json
+{
+  "trigger_type": "mention",
+  "trigger_config": { "channel_ids": ["ch_support_xyz"] },
+  "actions": [
+    {
+      "tool": "http_request",
+      "args": {
+        "connection": "helpscout",
+        "method": "GET",
+        "url": "https://api.helpscout.net/v2/conversations?status=active"
+      }
+    },
+    {
+      "tool": "send_dm",
+      "args": {
+        "user_id": "u_user_789",
+        "content": "Open tickets: {{step1.body._embedded.conversations.length}}"
+      }
+    }
+  ],
+  "name": "Mention in #support → DM ticket count",
+  "sender_kind": "bot"
+}
+```
+
+#### Example 3 — Webhook to channel
+
+User: _"When Stripe webhooks us a charge.failed event, post the customer email to #billing-alerts."_
+
+```json
+{
+  "trigger_type": "webhook",
+  "trigger_config": {},
+  "actions": [
+    {
+      "tool": "send_message",
+      "args": {
+        "channel_id": "ch_billing_alerts",
+        "content": "❌ Charge failed for {{step0.body.data.object.receipt_email}} — amount {{step0.body.data.object.amount}}"
+      }
+    }
+  ],
+  "name": "Stripe charge.failed → #billing-alerts",
+  "sender_kind": "bot",
+  "bot_avatar": "❌"
+}
+```
+
+(For webhooks, `{{step0.body.*}}` references the inbound payload.)
+
+### Validation checklist before submitting
+
+- [ ] `trigger_type` is one of the five literals
+- [ ] `trigger_config` matches the shape for that trigger type
+- [ ] If `schedule`: `cron` parses as 5 fields; `tz` is set
+- [ ] `actions` has at least one entry
+- [ ] Every `tool` is one of the five literals
+- [ ] Every `channel_id` / `user_id` / `connection` resolves to something the user named in the interview
+- [ ] Every `{{stepN.PATH}}` reference points at a step that produces that output
+- [ ] `name` is ≤80 chars and human-readable
+- [ ] `sender_kind` is set; `coworker_id` is present iff `sender_kind="coworker"`
+- [ ] No `SELECT *` to a public channel without a `LIMIT`
+- [ ] No sensitive-column patterns in SQL queries
+
+### After submission
+
+```bash
+# Submit the spec
+ano automation create-compiled --file - --agent <<EOF
+{...}
+EOF
+# → {"id":"auto_abc","name":"…","enabled":false,...}
+
+# Verify
+ano automation list --agent
+
+# Test (dry-run) before enabling
+ano automation run auto_abc --agent
+
+# Fire for real once
+ano automation run auto_abc --no-dry-run --agent
+```
+
+The user enables it in the Ano UI — that's a deliberate human gate so an
+automation can never silently start firing.
 
 ## Exit Codes
 
