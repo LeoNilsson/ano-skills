@@ -232,15 +232,16 @@ ano commands --json                 # Full command catalog
 | Compile only (no save)                                        | `ano automation compile "prompt" --agent`                                                       |
 | Create from prompt (server LLM, slow)                         | `ano automation create "prompt" --agent`                                                        |
 | ⚠ Interactive (USER-only, NOT YOU)                            | `ano new automation`, `ano edit automation` — see warning in Decision Trees                     |
-| Update                                                        | `ano automation update <id> --name "..." --agent`                                               |
-| List                                                          | `ano automation list --agent`                                                                   |
-| Recent runs                                                   | `ano automation runs <id> --agent`                                                              |
-| Test (dry-run)                                                | `ano automation run <id> --agent`                                                               |
-| Run for real                                                  | `ano automation run <id> --no-dry-run --agent`                                                  |
-| Pause                                                         | `ano automation pause <id>`                                                                     |
-| Resume                                                        | `ano automation resume <id>`                                                                    |
-| Delete                                                        | `ano automation delete <id>`                                                                    |
-| Webhook setup/rotate                                          | `ano automation webhook-setup <id> --agent`                                                     |
+| Update                                                        | `ano automation update <slug-or-id> --name "..." --agent`                                       |
+| List                                                          | `ano automation list --agent` (returns `slug` + `id` per row)                                   |
+| Recent runs                                                   | `ano automation runs <slug-or-id> --agent`                                                      |
+| Test (dry-run)                                                | `ano automation run <slug-or-id> --agent`                                                       |
+| Run for real                                                  | `ano automation run <slug-or-id> --no-dry-run --agent`                                          |
+| Pause                                                         | `ano automation pause <slug-or-id>`                                                             |
+| Resume                                                        | `ano automation resume <slug-or-id>`                                                            |
+| Delete                                                        | `ano automation delete <slug-or-id>`                                                            |
+| Webhook setup/rotate                                          | `ano automation webhook-setup <slug-or-id> --agent`                                             |
+| Activate webhook (flip stub → live)                           | `ano automation activate <slug-or-id> --agent` (CLI v2.8.2+)                                    |
 | Validate compiled plan (offline)                              | `ano automation validate --file plan.json --agent`                                              |
 | **Channels (admin)**                                          |                                                                                                 |
 | Archive channel                                               | `ano channels archive <channel-id> --agent`                                                     |
@@ -422,15 +423,57 @@ Building or managing an automation?
 │   2. compose the compiled plan offline (see "Building Automations Offline")
 │   3. validate locally → ano automation validate --file plan.json --agent
 │   4. submit once     → ano automation create-compiled --file - --agent
-├── Edit an existing one         → ano automation update <id> --name "..." --agent
+├── Edit an existing one         → ano automation update <slug-or-id> --name "..." --agent
 ├── List existing                → ano automation list --agent
-├── See recent runs              → ano automation runs <id> --agent
-├── Test before enabling         → ano automation run <id> --agent  (dry-run)
-├── Fire for real once           → ano automation run <id> --no-dry-run --agent
-├── Pause / resume               → ano automation pause|resume <id>
-├── Webhook trigger setup        → ano automation webhook-setup <id> --agent
-└── Delete (irreversible)        → ano automation delete <id>
+├── See recent runs              → ano automation runs <slug-or-id> --agent
+├── Test before enabling         → ano automation run <slug-or-id> --agent  (dry-run)
+├── Fire for real once           → ano automation run <slug-or-id> --no-dry-run --agent
+├── Pause / resume               → ano automation pause|resume <slug-or-id>
+├── Webhook trigger setup        → ano automation webhook-setup <slug-or-id> --agent
+│   then activate to start firing → ano automation activate <slug-or-id> --agent
+└── Delete (irreversible)        → ano automation delete <slug-or-id>
 ```
+
+#### Webhook automations are minted in stub mode (CLI v2.8.2+)
+
+`ano automation webhook-setup <slug-or-id>` returns the URL + secret
+but the token starts in **stub mode** — incoming events are recorded
+for inspection but configured actions DON'T fire yet. This is
+intentional for the desktop UI's recompile-on-real-payload flow, but
+when you (Claude Code) build a webhook automation end-to-end you
+almost always want it live immediately.
+
+The two-step flow:
+
+```bash
+# 1. Mint the URL + secret
+ano automation webhook-setup quiet-otter-42 --agent
+
+# 2. Activate so inbound POSTs fire the actions
+ano automation activate quiet-otter-42 --agent
+```
+
+The mint response's `next_step` field also contains the activate
+hint — surface it to the user when they're setting up a webhook
+integration so they don't lose silent webhook fires.
+
+#### Slugs vs UUIDs (CLI v2.8.0+)
+
+`ano automation list` returns each row with both a stable display
+`slug` (e.g. `quiet-otter-42`) and the underlying `id` (UUID).
+Every command that takes an automation positional now accepts either.
+
+- **Humans + scrollback**: prefer the slug — it's readable, copy-pastes
+  cleanly, and survives a glance from the user.
+- **Scripts and `--json` consumers**: prefer the raw `id` — slugs are
+  derived deterministically from the UUID but are display-only and
+  could in principle change format in a future release.
+
+The slug is computed client-side from the UUID via a stable hash, so
+no server round-trip is needed to derive it. Resolution from slug → UUID
+happens via a one-shot list call inside the command; if the slug is
+ambiguous (extremely rare, single-workspace) the CLI prints the
+matches and exits non-zero so the operator can re-run with the UUID.
 
 > ⚠ **DO NOT use `ano new automation` from Bash inside a Claude Code session.**
 >
@@ -794,6 +837,38 @@ will warn on. Fixing them in chat is faster than after-the-fact warnings.
 | Guest-visible channel                | If `has_guests=true` on the destination channel, flag it — guests will see the output.                                       |
 | Connection name not found            | Still emit the action; warn the user the connection chip will be phantom until they wire it up.                              |
 
+### Step 4b: Run caps (when the user phrases a limit)
+
+If the user describes a cap — "for 5 weeks", "20 times", "until end of
+Q2", "for the next month", "just once" — set them in the plan / on
+submit. The engine auto-disables the automation when the cap is
+reached (preserves run history; user can raise the cap and re-enable).
+
+Two cap fields, either or both can be set:
+
+| Field        | Type           | Set via plan JSON             | Set via flag                                          |
+| ------------ | -------------- | ----------------------------- | ----------------------------------------------------- |
+| `max_runs`   | positive int   | `"max_runs": 20`              | `--max-runs 20`                                       |
+| `expires_at` | epoch ms (UTC) | `"expires_at": 1717200000000` | `--expires-in "5 weeks"` OR `--expires-at 2026-06-01` |
+
+Phrasing → field mapping:
+
+- "for 5 weeks" / "next month" / "until June 1" → `--expires-in` or
+  `--expires-at`
+- "20 times" / "5 runs" / "just once" → `max_runs`
+- "every weekday for a month" → both: schedule cron + `--expires-in "1 month"`
+
+Surface the cap in the plain-English recap (Step 5):
+
+> "Got it: every weekday at 09:00 Stockholm time, post yesterday's
+> signups to #growth, **for the next 5 weeks** (auto-disables on
+> {date}). Confirm?"
+
+When the cap is reached, the engine sets `enabled=false` and
+`last_error="cap reached: <max_runs|expired>"`. The user can
+`ano automation update <slug> --max-runs 100 --enabled true` (or
+similar) to extend.
+
 ### Step 5: Interview script
 
 When the user says "create an automation", run this interview in chat
@@ -810,9 +885,10 @@ the plan filled in:
    - For SQL/HTTP steps, ask which connection.
    - If outputs from earlier steps need to flow in, build the `{{stepN...}}` reference yourself — don't ask the user to write template syntax.
 3. **Sender:** "Should this post as a bot, as one of your coworkers (which one?), or as you?"
-4. **Name:** propose one based on the prompt; let the user override.
-5. **Recap:** read the plan back in plain English. **Don't show JSON** unless asked. Confirm.
-6. **Submit:** one shot — `ano automation create-compiled --file - --agent`.
+4. **Run caps:** if the user phrased a duration / count limit ("for 5 weeks", "20 times"), apply Step 4b. Otherwise leave both unset (unlimited).
+5. **Name:** propose one based on the prompt; let the user override.
+6. **Recap:** read the plan back in plain English. Include any cap. **Don't show JSON** unless asked. Confirm.
+7. **Submit:** one shot — `ano automation create-compiled --file - --agent` (with `--max-runs` / `--expires-in` / `--expires-at` if set).
 
 ### Worked examples
 
