@@ -147,79 +147,90 @@ ano commands --json                 # Full command catalog
 
 ## Quick Reference
 
-| Task                                    | Command                                                                      |
-| --------------------------------------- | ---------------------------------------------------------------------------- |
-| **Auth**                                |                                                                              |
-| Save API key                            | `ano auth login --key <key>`                                                 |
-| Browser login                           | `ano auth login --workspace-id <id>` (requires CLI v2.1.0+)                  |
-| Triggered auth (orchestrators) — step 1 | `ano auth login --print-workspaces` (CLI v2.2.0+)                            |
-| Triggered auth — step 2                 | `ano auth complete --workspace-id <id>` (CLI v2.2.0+)                        |
-| Check auth                              | `ano auth status --agent`                                                    |
-| Remove credentials                      | `ano auth logout`                                                            |
-| **Read**                                |                                                                              |
-| List channels                           | `ano channels list --agent`                                                  |
-| Create channel                          | `ano channels create <name> [--private] [--topic ...] [--members u1,u2]`     |
-| List users                              | `ano users list --agent`                                                     |
-| List workspaces                         | `ano workspaces list --agent`                                                |
-| Read messages                           | `ano messages read --channel <id> --agent`                                   |
-| Read (limited)                          | `ano messages read --channel <id> --limit 10 --agent`                        |
-| Search messages                         | `ano messages search "query" --agent`                                        |
-| Search (limited)                        | `ano messages search "query" --limit 5 --agent`                              |
-| Show URL content                        | `ano show <url> --agent`                                                     |
-| **Write**                               |                                                                              |
-| Send message                            | `ano messages send "text" --channel <id> --agent`                            |
-| Reply in thread                         | `ano messages send "text" --channel <id> --thread <msg_id> --agent`          |
-| Send with @mention                      | `ano messages send "text" --channel <id> --mention <user_id> --agent`        |
-| Send DM (by name)                       | `ano dm send "text" --to "Name" --agent`                                     |
-| Send DM (by email)                      | `ano dm send "text" --email user@co.com --agent`                             |
-| Send DM (by ID)                         | `ano dm send "text" --user-id <id> --agent`                                  |
-| **Tables**                              |                                                                              |
-| List tables                             | `ano tables list --agent`                                                    |
-| Get table + schema                      | `ano tables get <table-id> --agent`                                          |
-| Query items                             | `ano tables query <table-id> --agent`                                        |
-| Query (filtered)                        | `ano tables query <table-id> --filter '<json-array>' --agent`                |
-| Query (sorted)                          | `ano tables query <table-id> --sort '<json>' --agent`                        |
-| Create table                            | `ano tables create "<name>" --agent`                                         |
-| Create item                             | `ano tables create-item --table <id> --fields '<json>' --agent`              |
-| Update item                             | `ano tables update-item <item-id> --fields '<json>' --agent`                 |
-| Archive item                            | `ano tables update-item <item-id> --archive --agent`                         |
-| Comment on item                         | `ano tables comment <item-id> "body" --agent`                                |
-| **Automations (guided)**                |                                                                              |
-| New automation (Claude UX)              | `ano new automation "every weekday 9am post yesterday's signups to #growth"` |
-| Edit automation (Claude UX)             | `ano edit automation <id> "add a Slack notification on failure"`             |
-| **Automations (granular)**              |                                                                              |
-| Compile (no save)                       | `ano automation compile "prompt" --agent`                                    |
-| Create from prompt                      | `ano automation create "prompt" --agent`                                     |
-| Create from JSON                        | `ano automation create-compiled --file plan.json --agent`                    |
-| Update                                  | `ano automation update <id> --name "..." --agent`                            |
-| List                                    | `ano automation list --agent`                                                |
-| Recent runs                             | `ano automation runs <id> --agent`                                           |
-| Test (dry-run)                          | `ano automation run <id> --agent`                                            |
-| Run for real                            | `ano automation run <id> --no-dry-run --agent`                               |
-| Pause                                   | `ano automation pause <id>`                                                  |
-| Resume                                  | `ano automation resume <id>`                                                 |
-| Delete                                  | `ano automation delete <id>`                                                 |
-| Webhook setup/rotate                    | `ano automation webhook-setup <id> --agent`                                  |
-| Validate compiled plan (offline)        | `ano automation validate --file plan.json --agent`                           |
-| **Coworkers (external integrations)**   |                                                                              |
-| Test outbound webhook                   | `ano coworker webhook-test <coworker-id> --agent`                            |
-| **Workspaces**                          |                                                                              |
-| List workspaces                         | `ano workspaces list --agent`                                                |
-| Set active workspace                    | `ano workspaces use <workspace-id>`                                          |
-| **Invites**                             |                                                                              |
-| Invite teammate                         | `ano invite <email> [--expires-hours N]`                                     |
-| Open invite (no email)                  | `ano invite [--expires-hours N]`                                             |
-| **Real-time**                           |                                                                              |
-| Start SSE bridge                        | `ano connect`                                                                |
-| Bridge + agent mode                     | `ano connect --openclaw <url>`                                               |
-| Bridge + health                         | `ano connect --health-port 8080`                                             |
-| Install service                         | `ano connect install-service`                                                |
-| Remove service                          | `ano connect uninstall-service --service-name <name-or-hash>`                |
-| **Diagnostics**                         |                                                                              |
-| Full diagnostics                        | `ano doctor --agent`                                                         |
-| Command catalog                         | `ano commands --json`                                                        |
-| Setup Claude                            | `ano setup claude`                                                           |
-| Setup OpenClaw                          | `ano setup openclaw`                                                         |
+| Task                                    | Command                                                                                         |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Auth**                                |                                                                                                 |
+| Save API key                            | `ano auth login --key <key>`                                                                    |
+| Browser login                           | `ano auth login --workspace-id <id>` (requires CLI v2.1.0+)                                     |
+| Triggered auth (orchestrators) — step 1 | `ano auth login --print-workspaces` (CLI v2.2.0+)                                               |
+| Triggered auth — step 2                 | `ano auth complete --workspace-id <id>` (CLI v2.2.0+)                                           |
+| Check auth                              | `ano auth status --agent`                                                                       |
+| Remove credentials                      | `ano auth logout`                                                                               |
+| **Read**                                |                                                                                                 |
+| List channels                           | `ano channels list --agent`                                                                     |
+| Create channel                          | `ano channels create <name> [--private] [--topic ...] [--members u1,u2]`                        |
+| List users                              | `ano users list --agent`                                                                        |
+| List workspaces                         | `ano workspaces list --agent`                                                                   |
+| Read messages                           | `ano messages read --channel <id> --agent`                                                      |
+| Read (limited)                          | `ano messages read --channel <id> --limit 10 --agent`                                           |
+| Search messages                         | `ano messages search "query" --agent`                                                           |
+| Search (limited)                        | `ano messages search "query" --limit 5 --agent`                                                 |
+| Show URL content                        | `ano show <url> --agent`                                                                        |
+| **Write**                               |                                                                                                 |
+| Send message                            | `ano messages send "text" --channel <id> --agent`                                               |
+| Reply in thread                         | `ano messages send "text" --channel <id> --thread <msg_id> --agent`                             |
+| Send with @mention                      | `ano messages send "text" --channel <id> --mention <user_id> --agent`                           |
+| Send DM (by name)                       | `ano dm send "text" --to "Name" --agent`                                                        |
+| Send DM (by email)                      | `ano dm send "text" --email user@co.com --agent`                                                |
+| Send DM (by ID)                         | `ano dm send "text" --user-id <id> --agent`                                                     |
+| **Tables**                              |                                                                                                 |
+| List tables                             | `ano tables list --agent`                                                                       |
+| Get table + schema                      | `ano tables get <table-id> --agent`                                                             |
+| Query items                             | `ano tables query <table-id> --agent`                                                           |
+| Query (filtered)                        | `ano tables query <table-id> --filter '<json-array>' --agent`                                   |
+| Query (sorted)                          | `ano tables query <table-id> --sort '<json>' --agent`                                           |
+| Create table                            | `ano tables create "<name>" --agent`                                                            |
+| Create item                             | `ano tables create-item --table <id> --fields '<json>' --agent`                                 |
+| Update item                             | `ano tables update-item <item-id> --fields '<json>' --agent`                                    |
+| Archive item                            | `ano tables update-item <item-id> --archive --agent`                                            |
+| Comment on item                         | `ano tables comment <item-id> "body" --agent`                                                   |
+| **Automations (guided)**                |                                                                                                 |
+| New automation (Claude UX)              | `ano new automation "every weekday 9am post yesterday's signups to #growth"`                    |
+| Edit automation (Claude UX)             | `ano edit automation <id> "add a Slack notification on failure"`                                |
+| **Automations (granular)**              |                                                                                                 |
+| Compile (no save)                       | `ano automation compile "prompt" --agent`                                                       |
+| Create from prompt                      | `ano automation create "prompt" --agent`                                                        |
+| Create from JSON                        | `ano automation create-compiled --file plan.json --agent`                                       |
+| Update                                  | `ano automation update <id> --name "..." --agent`                                               |
+| List                                    | `ano automation list --agent`                                                                   |
+| Recent runs                             | `ano automation runs <id> --agent`                                                              |
+| Test (dry-run)                          | `ano automation run <id> --agent`                                                               |
+| Run for real                            | `ano automation run <id> --no-dry-run --agent`                                                  |
+| Pause                                   | `ano automation pause <id>`                                                                     |
+| Resume                                  | `ano automation resume <id>`                                                                    |
+| Delete                                  | `ano automation delete <id>`                                                                    |
+| Webhook setup/rotate                    | `ano automation webhook-setup <id> --agent`                                                     |
+| Validate compiled plan (offline)        | `ano automation validate --file plan.json --agent`                                              |
+| **Channels (admin)**                    |                                                                                                 |
+| Archive channel                         | `ano channels archive <channel-id> --agent`                                                     |
+| Add member to channel                   | `ano channels member-add <channel-id> --user <user-id> --agent`                                 |
+| Remove member from channel              | `ano channels member-remove <channel-id> --user <user-id> --agent`                              |
+| **Coworkers (AI teammates)**            |                                                                                                 |
+| Create managed coworker                 | `ano coworker create "Display Name" --role-title "Role" --agent`                                |
+| Create external coworker                | `ano coworker create "Display Name" --role-title "Role" --external --webhook-url <url> --agent` |
+| Test outbound webhook                   | `ano coworker webhook-test <coworker-id> --agent`                                               |
+| **Notifications & DND**                 |                                                                                                 |
+| Set DND window                          | `ano dnd set --start 22:00 --end 07:00 --agent`                                                 |
+| Clear DND                               | `ano dnd set --clear --agent`                                                                   |
+| Update notification prefs               | `ano notifications prefs-set --global-level mentions_dms --agent`                               |
+| Toggle email notifications              | `ano notifications prefs-set --no-email --agent`                                                |
+| **Workspaces**                          |                                                                                                 |
+| List workspaces                         | `ano workspaces list --agent`                                                                   |
+| Set active workspace                    | `ano workspaces use <workspace-id>`                                                             |
+| **Invites**                             |                                                                                                 |
+| Invite teammate                         | `ano invite <email> [--expires-hours N]`                                                        |
+| Open invite (no email)                  | `ano invite [--expires-hours N]`                                                                |
+| **Real-time**                           |                                                                                                 |
+| Start SSE bridge                        | `ano connect`                                                                                   |
+| Bridge + agent mode                     | `ano connect --openclaw <url>`                                                                  |
+| Bridge + health                         | `ano connect --health-port 8080`                                                                |
+| Install service                         | `ano connect install-service`                                                                   |
+| Remove service                          | `ano connect uninstall-service --service-name <name-or-hash>`                                   |
+| **Diagnostics**                         |                                                                                                 |
+| Full diagnostics                        | `ano doctor --agent`                                                                            |
+| Command catalog                         | `ano commands --json`                                                                           |
+| Setup Claude                            | `ano setup claude`                                                                              |
+| Setup OpenClaw                          | `ano setup openclaw`                                                                            |
 
 ## Triggered Auth (when CLI is unauthenticated)
 
