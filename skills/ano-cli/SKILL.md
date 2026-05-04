@@ -158,6 +158,7 @@ ano commands --json                 # Full command catalog
 | Remove credentials                      | `ano auth logout`                                                            |
 | **Read**                                |                                                                              |
 | List channels                           | `ano channels list --agent`                                                  |
+| Create channel                          | `ano channels create <name> [--private] [--topic ...] [--members u1,u2]`     |
 | List users                              | `ano users list --agent`                                                     |
 | List workspaces                         | `ano workspaces list --agent`                                                |
 | Read messages                           | `ano messages read --channel <id> --agent`                                   |
