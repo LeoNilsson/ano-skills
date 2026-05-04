@@ -890,8 +890,9 @@ If the name is ambiguous (multiple matches), fall back to `ano users list --agen
   "trigger_config": { "cron": "0 9-17 * * 1-5", "tz": "Europe/Stockholm" },
   "actions": [
     {
-      "tool": "http_get",
+      "tool": "http_request",
       "args": {
+        "method": "GET",
         "url": "https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m"
       }
     },
@@ -899,7 +900,7 @@ If the name is ambiguous (multiple matches), fall back to `ano users list --agen
       "tool": "send_dm",
       "args": {
         "user_id": "user_01KGDB7J4R8VEEJ2FNCV0AMPDR",
-        "content": "Stockholm weather: {{step0.current.temperature_2m}}°C, wind {{step0.current.wind_speed_10m}} km/h"
+        "content": "Stockholm weather: {{step1.body.current.temperature_2m}}°C, wind {{step1.body.current.wind_speed_10m}} km/h"
       }
     }
   ],
