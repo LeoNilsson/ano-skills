@@ -414,6 +414,10 @@ Need structured data (lists, databases, rows)?
 ```
 Building or managing an automation?
 ├── NEW automation (you are Claude Code) → BUILD-BEFORE-TALK below ↓
+│   0. ensure a workspace is set: `ano workspaces list --agent`, then
+│      `ano workspaces use <id>` if no active workspace (one-time per
+│      profile). Without this, create-compiled will refuse with a
+│      clear error pointing back here.
 │   1. resolve named users/channels via ano user_get_by_name / channel_get_by_name
 │   2. compose the compiled plan offline (see "Building Automations Offline")
 │   3. validate locally → ano automation validate --file plan.json --agent
