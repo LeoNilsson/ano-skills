@@ -67,6 +67,12 @@ triggers:
   - invite teammate
   - invite member
   - send invite
+  - add to workspace
+  - add member to workspace
+  - remove from workspace
+  - kick from workspace
+  - workspace member
+  - promote to member
   - set dnd
   - do not disturb
   - dnd hours
@@ -252,6 +258,8 @@ ano commands --json                 # Full command catalog
 | **Workspaces**                                                |                                                                                                 |
 | List workspaces                                               | `ano workspaces list --agent`                                                                   |
 | Set active workspace                                          | `ano workspaces use <workspace-id>`                                                             |
+| Add member (auto-joins public channels)                       | `ano workspaces member-add <workspace-id> <user-id> --agent`                                    |
+| Remove member (soft-delete, reversible)                       | `ano workspaces member-remove <workspace-id> <user-id> --agent`                                 |
 | **Invites**                                                   |                                                                                                 |
 | Invite teammate                                               | `ano invite <email> [--expires-hours N]`                                                        |
 | Open invite (no email)                                        | `ano invite [--expires-hours N]`                                                                |
@@ -455,6 +463,28 @@ Notes:
   non-workspace users with crisp 400/404s — no opaque 500s.
 - `member-remove` is a soft-delete (`removed_at` tombstone). The user can be
   re-added later and history is preserved.
+
+### Workspace Admin (members)
+
+```
+Managing workspace membership?
+├── Add a member (or rejoin)        → ano workspaces member-add <workspace-id> <user-id> --agent
+├── Remove a member (soft-delete)   → ano workspaces member-remove <workspace-id> <user-id> --agent
+├── Need the user-id?               → ano users list --agent  OR  ano user_get_by_email "alice@acme.com" --agent
+└── List members                    → ano users list --agent
+```
+
+Notes:
+
+- `member-add` is idempotent: rejoins removed members (clears `removed_at`),
+  promotes 'collaborator' role to 'member', and is a no-op if already a full
+  member. Auto-joins the user to the workspace's public channels in the same
+  transaction.
+- `member-remove` is a soft-delete. The user keeps their channel-membership
+  history; reverse via `member-add`. Forbidden against the workspace's
+  primary_owner — transfer ownership through the desktop UI first.
+- Self-removal blocked: the "leave workspace" path is a separate flow
+  (different audit trail, no `removed_by`). Use the desktop UI for that.
 
 ### Coworkers (AI teammates)
 
