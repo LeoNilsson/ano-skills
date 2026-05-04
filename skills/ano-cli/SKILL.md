@@ -232,15 +232,15 @@ ano commands --json                 # Full command catalog
 | Compile only (no save)                                        | `ano automation compile "prompt" --agent`                                                       |
 | Create from prompt (server LLM, slow)                         | `ano automation create "prompt" --agent`                                                        |
 | ⚠ Interactive (USER-only, NOT YOU)                            | `ano new automation`, `ano edit automation` — see warning in Decision Trees                     |
-| Update                                                        | `ano automation update <id> --name "..." --agent`                                               |
-| List                                                          | `ano automation list --agent`                                                                   |
-| Recent runs                                                   | `ano automation runs <id> --agent`                                                              |
-| Test (dry-run)                                                | `ano automation run <id> --agent`                                                               |
-| Run for real                                                  | `ano automation run <id> --no-dry-run --agent`                                                  |
-| Pause                                                         | `ano automation pause <id>`                                                                     |
-| Resume                                                        | `ano automation resume <id>`                                                                    |
-| Delete                                                        | `ano automation delete <id>`                                                                    |
-| Webhook setup/rotate                                          | `ano automation webhook-setup <id> --agent`                                                     |
+| Update                                                        | `ano automation update <slug-or-id> --name "..." --agent`                                       |
+| List                                                          | `ano automation list --agent` (returns `slug` + `id` per row)                                   |
+| Recent runs                                                   | `ano automation runs <slug-or-id> --agent`                                                      |
+| Test (dry-run)                                                | `ano automation run <slug-or-id> --agent`                                                       |
+| Run for real                                                  | `ano automation run <slug-or-id> --no-dry-run --agent`                                          |
+| Pause                                                         | `ano automation pause <slug-or-id>`                                                             |
+| Resume                                                        | `ano automation resume <slug-or-id>`                                                            |
+| Delete                                                        | `ano automation delete <slug-or-id>`                                                            |
+| Webhook setup/rotate                                          | `ano automation webhook-setup <slug-or-id> --agent`                                             |
 | Validate compiled plan (offline)                              | `ano automation validate --file plan.json --agent`                                              |
 | **Channels (admin)**                                          |                                                                                                 |
 | Archive channel                                               | `ano channels archive <channel-id> --agent`                                                     |
@@ -422,15 +422,33 @@ Building or managing an automation?
 │   2. compose the compiled plan offline (see "Building Automations Offline")
 │   3. validate locally → ano automation validate --file plan.json --agent
 │   4. submit once     → ano automation create-compiled --file - --agent
-├── Edit an existing one         → ano automation update <id> --name "..." --agent
+├── Edit an existing one         → ano automation update <slug-or-id> --name "..." --agent
 ├── List existing                → ano automation list --agent
-├── See recent runs              → ano automation runs <id> --agent
-├── Test before enabling         → ano automation run <id> --agent  (dry-run)
-├── Fire for real once           → ano automation run <id> --no-dry-run --agent
-├── Pause / resume               → ano automation pause|resume <id>
-├── Webhook trigger setup        → ano automation webhook-setup <id> --agent
-└── Delete (irreversible)        → ano automation delete <id>
+├── See recent runs              → ano automation runs <slug-or-id> --agent
+├── Test before enabling         → ano automation run <slug-or-id> --agent  (dry-run)
+├── Fire for real once           → ano automation run <slug-or-id> --no-dry-run --agent
+├── Pause / resume               → ano automation pause|resume <slug-or-id>
+├── Webhook trigger setup        → ano automation webhook-setup <slug-or-id> --agent
+└── Delete (irreversible)        → ano automation delete <slug-or-id>
 ```
+
+#### Slugs vs UUIDs (CLI v2.8.0+)
+
+`ano automation list` returns each row with both a stable display
+`slug` (e.g. `quiet-otter-42`) and the underlying `id` (UUID).
+Every command that takes an automation positional now accepts either.
+
+- **Humans + scrollback**: prefer the slug — it's readable, copy-pastes
+  cleanly, and survives a glance from the user.
+- **Scripts and `--json` consumers**: prefer the raw `id` — slugs are
+  derived deterministically from the UUID but are display-only and
+  could in principle change format in a future release.
+
+The slug is computed client-side from the UUID via a stable hash, so
+no server round-trip is needed to derive it. Resolution from slug → UUID
+happens via a one-shot list call inside the command; if the slug is
+ambiguous (extremely rare, single-workspace) the CLI prints the
+matches and exits non-zero so the operator can re-run with the UUID.
 
 > ⚠ **DO NOT use `ano new automation` from Bash inside a Claude Code session.**
 >
