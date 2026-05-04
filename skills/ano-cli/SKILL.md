@@ -50,6 +50,40 @@ triggers:
   - notify channel
   - update the team
   - post an update
+  - archive channel
+  - archive a channel
+  - add to channel
+  - add member to channel
+  - remove from channel
+  - kick from channel
+  - create coworker
+  - create teammate
+  - new coworker
+  - new ai teammate
+  - add ai coworker
+  - external coworker
+  - managed coworker
+  - test coworker webhook
+  - invite teammate
+  - invite member
+  - send invite
+  - set dnd
+  - do not disturb
+  - dnd hours
+  - snooze notifications
+  - quiet hours
+  - mute notifications
+  - block notifications
+  - clear dnd
+  - notification preferences
+  - notification settings
+  - notification level
+  - mentions only
+  - email notifications
+  - mute email
+  - email digest
+  - desktop push
+  - mobile push
   - ano.dev
   - api.ano.dev
   - ano_cwk_
@@ -391,6 +425,68 @@ For brand-new automations Claude Code is composing in chat, use the deeper
 assemble the full spec without compile-iterate roundtrips, then submit
 once via `ano automation create-compiled --file -`.
 
+### Channel Admin (archive, members)
+
+```
+Managing a channel?
+├── Archive (irreversible-ish, hides it)   → ano channels archive <channel-id> --agent
+├── Add a teammate                         → ano channels member-add <channel-id> --user <user-id> --agent
+├── Remove a teammate                      → ano channels member-remove <channel-id> --user <user-id> --agent
+└── Need the user-id?                      → ano users list --agent  (find by display name or email)
+```
+
+Notes:
+
+- Caller must be a workspace admin (or the channel creator) to archive.
+- `member-add` rejects archived channels, non-channel types (DMs, spaces), and
+  non-workspace users with crisp 400/404s — no opaque 500s.
+- `member-remove` is a soft-delete (`removed_at` tombstone). The user can be
+  re-added later and history is preserved.
+
+### Coworkers (AI teammates)
+
+```
+Need an AI teammate?
+├── Managed (Anthropic-hosted, no infra)
+│   → ano coworker create "Display Name" --role-title "Ops engineer" --agent
+├── External (your own webhook endpoint, full control)
+│   → ano coworker create "Display Name" --role-title "..." \
+│       --external --webhook-url https://your.host/webhook --agent
+│   ⚠ Response includes api_key + webhook_secret ONCE — save them now,
+│      they are NOT recoverable later.
+├── Test the webhook is reachable          → ano coworker webhook-test <coworker-id> --agent
+├── Add to channels at create time         → --channels ch1,ch2,ch3
+├── Limit to specific capabilities         → --capabilities send_message,read_table
+└── Set persona/expertise                  → --expertise "..." --personality "..." --boundaries "..."
+```
+
+Pick managed unless the user has an existing service to call out to (a CRM,
+their own LLM, a Linear bot). Managed is the default and the simpler path.
+
+### DND & Notification Preferences
+
+```
+Adjusting how/when the user gets pinged?
+├── Quiet hours (DND)
+│   ├── Set window      → ano dnd set --start 22:00 --end 07:00 --agent
+│   ├── Clear           → ano dnd set --clear --agent
+│   └── Times are workspace-local (24h HH:MM); window may cross midnight.
+├── Notification level (per-workspace)
+│   ├── Everything           → ano notifications prefs-set --global-level everything --agent
+│   ├── Mentions + DMs only  → ano notifications prefs-set --global-level mentions_dms --agent
+│   └── Nothing              → ano notifications prefs-set --global-level nothing --agent
+├── Email digests
+│   ├── Disable        → ano notifications prefs-set --no-email --agent
+│   ├── Enable + delay → ano notifications prefs-set --email --email-delay-minutes 5 --agent
+├── Desktop / mobile push toggles
+│   ├── ano notifications prefs-set --no-desktop --agent
+│   └── ano notifications prefs-set --no-mobile --agent
+```
+
+`prefs-set` is a partial update — only the flags you pass change. Other
+fields are preserved via `COALESCE`. So `--no-email` won't reset DND or push
+settings.
+
 ### Setting Up Agent Access
 
 ```
@@ -432,6 +528,89 @@ ano messages send "Fix applied" --channel "$CHANNEL_ID" --thread "$MSG_ID" --age
 users=$(ano users list --agent)
 # Find user ID for "Jane"
 ano dm send "Can you review PR #42?" --to "Jane" --agent
+```
+
+### Archive an old channel
+
+```bash
+# Find the channel
+channels=$(ano channels list --agent)
+# Extract channel ID for "old-project"
+ano channels archive "$CHANNEL_ID" --agent
+# Archived channels disappear from sidebars but messages are preserved.
+```
+
+### Add a teammate to a channel
+
+```bash
+# Look up the user
+users=$(ano users list --agent)
+# Find target user_id (by display name or email)
+ano channels member-add "$CHANNEL_ID" --user "$USER_ID" --agent
+# Idempotent: already-a-member returns 200, doesn't error.
+# Rejects: archived channel (400), DM/space target (400), non-member of workspace (404).
+```
+
+### Create a managed AI teammate
+
+```bash
+# Anthropic-hosted, no infra to run.
+ano coworker create "Iris" \
+  --role-title "Customer support" \
+  --expertise "answer billing questions, escalate refunds" \
+  --boundaries "never promise refunds without a human approval" \
+  --channels c123,c456 \
+  --capabilities send_message,read_table \
+  --agent
+# No webhook needed. The coworker shows up in users list immediately.
+```
+
+### Create an external coworker (own webhook)
+
+```bash
+ano coworker create "Linear-Bot" \
+  --role-title "Linear ops" \
+  --external \
+  --webhook-url https://bots.example.com/linear/webhook \
+  --agent
+# ⚠ Save api_key + webhook_secret from the response NOW.
+# They are returned ONCE, not recoverable later.
+
+# Verify the endpoint is reachable:
+ano coworker webhook-test "$COWORKER_ID" --agent
+```
+
+### Set DND quiet hours
+
+```bash
+# Block notifications between 10pm and 7am workspace-local.
+ano dnd set --start 22:00 --end 07:00 --agent
+
+# Clear the window when on call:
+ano dnd set --clear --agent
+```
+
+### Tighten notification level + email digest
+
+```bash
+# Only ping for @mentions and DMs:
+ano notifications prefs-set --global-level mentions_dms --agent
+
+# Disable email entirely:
+ano notifications prefs-set --no-email --agent
+
+# Or batch emails 5 minutes after the trigger fires:
+ano notifications prefs-set --email --email-delay-minutes 5 --agent
+# These calls are independent — partial update via COALESCE,
+# so toggling email won't reset DND or push settings.
+```
+
+### Invite a teammate
+
+```bash
+ano invite alice@example.com --expires-hours 72
+# Returns { token, invite_url, expires_at } — share invite_url with Alice.
+# Re-running with the same email revokes the previous token first.
 ```
 
 ### Real-time bridge with OpenClaw
