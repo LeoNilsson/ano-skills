@@ -206,6 +206,9 @@ ano commands --json                 # Full command catalog
 | **Workspaces**                          |                                                                              |
 | List workspaces                         | `ano workspaces list --agent`                                                |
 | Set active workspace                    | `ano workspaces use <workspace-id>`                                          |
+| **Invites**                             |                                                                              |
+| Invite teammate                         | `ano invite <email> [--expires-hours N]`                                     |
+| Open invite (no email)                  | `ano invite [--expires-hours N]`                                             |
 | **Real-time**                           |                                                                              |
 | Start SSE bridge                        | `ano connect`                                                                |
 | Bridge + agent mode                     | `ano connect --openclaw <url>`                                               |
