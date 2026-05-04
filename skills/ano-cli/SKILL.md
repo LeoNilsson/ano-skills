@@ -241,6 +241,7 @@ ano commands --json                 # Full command catalog
 | Resume                                                        | `ano automation resume <slug-or-id>`                                                            |
 | Delete                                                        | `ano automation delete <slug-or-id>`                                                            |
 | Webhook setup/rotate                                          | `ano automation webhook-setup <slug-or-id> --agent`                                             |
+| Activate webhook (flip stub → live)                           | `ano automation activate <slug-or-id> --agent` (CLI v2.8.2+)                                    |
 | Validate compiled plan (offline)                              | `ano automation validate --file plan.json --agent`                                              |
 | **Channels (admin)**                                          |                                                                                                 |
 | Archive channel                                               | `ano channels archive <channel-id> --agent`                                                     |
@@ -429,8 +430,32 @@ Building or managing an automation?
 ├── Fire for real once           → ano automation run <slug-or-id> --no-dry-run --agent
 ├── Pause / resume               → ano automation pause|resume <slug-or-id>
 ├── Webhook trigger setup        → ano automation webhook-setup <slug-or-id> --agent
+│   then activate to start firing → ano automation activate <slug-or-id> --agent
 └── Delete (irreversible)        → ano automation delete <slug-or-id>
 ```
+
+#### Webhook automations are minted in stub mode (CLI v2.8.2+)
+
+`ano automation webhook-setup <slug-or-id>` returns the URL + secret
+but the token starts in **stub mode** — incoming events are recorded
+for inspection but configured actions DON'T fire yet. This is
+intentional for the desktop UI's recompile-on-real-payload flow, but
+when you (Claude Code) build a webhook automation end-to-end you
+almost always want it live immediately.
+
+The two-step flow:
+
+```bash
+# 1. Mint the URL + secret
+ano automation webhook-setup quiet-otter-42 --agent
+
+# 2. Activate so inbound POSTs fire the actions
+ano automation activate quiet-otter-42 --agent
+```
+
+The mint response's `next_step` field also contains the activate
+hint — surface it to the user when they're setting up a webhook
+integration so they don't lose silent webhook fires.
 
 #### Slugs vs UUIDs (CLI v2.8.0+)
 
