@@ -812,6 +812,38 @@ will warn on. Fixing them in chat is faster than after-the-fact warnings.
 | Guest-visible channel                | If `has_guests=true` on the destination channel, flag it — guests will see the output.                                       |
 | Connection name not found            | Still emit the action; warn the user the connection chip will be phantom until they wire it up.                              |
 
+### Step 4b: Run caps (when the user phrases a limit)
+
+If the user describes a cap — "for 5 weeks", "20 times", "until end of
+Q2", "for the next month", "just once" — set them in the plan / on
+submit. The engine auto-disables the automation when the cap is
+reached (preserves run history; user can raise the cap and re-enable).
+
+Two cap fields, either or both can be set:
+
+| Field        | Type           | Set via plan JSON             | Set via flag                                          |
+| ------------ | -------------- | ----------------------------- | ----------------------------------------------------- |
+| `max_runs`   | positive int   | `"max_runs": 20`              | `--max-runs 20`                                       |
+| `expires_at` | epoch ms (UTC) | `"expires_at": 1717200000000` | `--expires-in "5 weeks"` OR `--expires-at 2026-06-01` |
+
+Phrasing → field mapping:
+
+- "for 5 weeks" / "next month" / "until June 1" → `--expires-in` or
+  `--expires-at`
+- "20 times" / "5 runs" / "just once" → `max_runs`
+- "every weekday for a month" → both: schedule cron + `--expires-in "1 month"`
+
+Surface the cap in the plain-English recap (Step 5):
+
+> "Got it: every weekday at 09:00 Stockholm time, post yesterday's
+> signups to #growth, **for the next 5 weeks** (auto-disables on
+> {date}). Confirm?"
+
+When the cap is reached, the engine sets `enabled=false` and
+`last_error="cap reached: <max_runs|expired>"`. The user can
+`ano automation update <slug> --max-runs 100 --enabled true` (or
+similar) to extend.
+
 ### Step 5: Interview script
 
 When the user says "create an automation", run this interview in chat
@@ -828,9 +860,10 @@ the plan filled in:
    - For SQL/HTTP steps, ask which connection.
    - If outputs from earlier steps need to flow in, build the `{{stepN...}}` reference yourself — don't ask the user to write template syntax.
 3. **Sender:** "Should this post as a bot, as one of your coworkers (which one?), or as you?"
-4. **Name:** propose one based on the prompt; let the user override.
-5. **Recap:** read the plan back in plain English. **Don't show JSON** unless asked. Confirm.
-6. **Submit:** one shot — `ano automation create-compiled --file - --agent`.
+4. **Run caps:** if the user phrased a duration / count limit ("for 5 weeks", "20 times"), apply Step 4b. Otherwise leave both unset (unlimited).
+5. **Name:** propose one based on the prompt; let the user override.
+6. **Recap:** read the plan back in plain English. Include any cap. **Don't show JSON** unless asked. Confirm.
+7. **Submit:** one shot — `ano automation create-compiled --file - --agent` (with `--max-runs` / `--expires-in` / `--expires-at` if set).
 
 ### Worked examples
 
