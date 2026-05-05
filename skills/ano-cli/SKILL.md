@@ -65,6 +65,13 @@ triggers:
   - remove from channel
   - kick from channel
   - create coworker
+  - update coworker
+  - edit coworker
+  - change coworker
+  - pause coworker
+  - resume coworker
+  - disable coworker
+  - enable coworker
   - create teammate
   - new coworker
   - new ai teammate
@@ -258,6 +265,7 @@ ano commands --json                 # Full command catalog
 | **Coworkers (AI teammates)**                                  |                                                                                                 |
 | Create managed coworker                                       | `ano coworker create "Display Name" --role-title "Role" --agent`                                |
 | Create external coworker                                      | `ano coworker create "Display Name" --role-title "Role" --external --webhook-url <url> --agent` |
+| Update coworker                                               | `ano coworker update <coworker-id> [--display-name …] [--role-title …] [--custom-instructions …] [--enabled true/false] … --agent` |
 | Test outbound webhook                                         | `ano coworker webhook-test <coworker-id> --agent`                                               |
 | **Notifications & DND**                                       |                                                                                                 |
 | Set DND window                                                | `ano dnd set --start 22:00 --end 07:00 --agent`                                                 |
@@ -594,6 +602,9 @@ Need an AI teammate?
 │   ⚠ Response includes api_key + webhook_secret ONCE — save them now,
 │      they are NOT recoverable later.
 ├── Test the webhook is reachable          → ano coworker webhook-test <coworker-id> --agent
+├── Edit an existing coworker              → ano coworker update <coworker-id> [--field value …] --agent
+│      ⚠ Only fields you pass are changed; everything else is left alone.
+│      Toggling --enabled true/false sends an "Agent paused/resumed" DM.
 ├── Add to channels at create time         → --channels ch1,ch2,ch3
 ├── Limit to specific capabilities         → --capabilities send_message,read_table
 └── Set persona/expertise                  → --expertise "..." --personality "..." --boundaries "..."
