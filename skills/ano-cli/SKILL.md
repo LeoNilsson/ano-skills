@@ -851,7 +851,7 @@ automation engine resolves):
 | `send_message` | `{ channel_id, content }`                                                     | (none — terminal action)       |
 | `send_dm`      | `{ user_id, content }`                                                        | (none — terminal action)       |
 | `sql_query`    | `{ connection: "<connection_name>", query: "SELECT ..." }`                    | `{{stepN.rows}}` (array)       |
-| `http_request` | `{ connection?: "<name>", method: "GET"\|"POST"\|..., url, headers?, body? }` | `{{stepN.body}}` (parsed JSON) |
+| `http_request` | `{ connection?: "<name>", method: "GET"\|"POST"\|..., url, headers?, body? }` | `{{stepN.body.PATH}}` — **PROBE the endpoint with `curl` first to verify PATH actually exists in the response (Step 3.5)** |
 | `run_skill`    | `{ skill_id, args }`                                                          | `{{stepN.output}}`             |
 
 For third-party services that don't have a stable HTTP API the user
@@ -879,6 +879,34 @@ into later-step args using `{{stepN.PATH}}`:
   because channel members may think the human typed it manually
 
 `bot_avatar` is an optional single emoji (e.g. `"📊"`).
+
+### Step 3.5: Probe HTTP endpoints — REQUIRED before saving
+
+**If the plan contains an `http_request` action whose output you reference via `{{stepN.body…}}`, you MUST first probe the endpoint and verify the field path exists in the actual response.** Do not infer the response shape from the URL or the user's description.
+
+```bash
+# 1. Probe the real endpoint (no auth header? no headers needed)
+curl -s 'https://api.example.com/v1/thing?param=x' | head -c 1000
+
+# 2. Confirm the path you intend to template lands at a real value, not undefined
+#    e.g. body.current.temperature_2m → 11.8 (✓), not body.data.temp (✗)
+```
+
+Then bake the **verified** path into the action template. If the body is wrapped (e.g. `{ data: {...} }` or paginated), follow the wrapper. If the value is nested deeper than you expected, fix the template before saving.
+
+**After saving, also verify rendering** with a real test fire (not just dry-run — dry-run does not exercise template substitution against live data):
+
+```bash
+ano automation run <slug-or-id> --no-dry-run --agent
+ano messages read --channel <dm-channel-id> --limit 1 --agent
+# Check that the delivered message contains real values, not empty placeholders
+# like "Temp: °C" — that means the path didn't resolve and the engine silently
+# rendered an empty string.
+```
+
+If you skip this and the template path is wrong, runs will report `success` but recipients receive messages with empty placeholders. The engine does not fail loudly on missing template paths.
+
+This applies equally when **editing** an existing automation's `actions` (i.e. via `ano automation update --actions ...` or the `ano edit automation` walk-through). Probe before changing the template; verify after.
 
 ### Step 4: Apply safety rules BEFORE submitting
 
@@ -1113,6 +1141,7 @@ Total elapsed: ~2 seconds, no nested-Claude-Code session, no state loss between 
 - [ ] Every `tool` is one of the five literals
 - [ ] Every `channel_id` / `user_id` / `connection` resolves to something the user named in the interview
 - [ ] Every `{{stepN.PATH}}` reference points at a step that produces that output
+- [ ] **For each `http_request` template ref: I have curled the endpoint and confirmed `PATH` resolves to a real value in the actual response (Step 3.5). Skipping this means runs will silently deliver empty placeholders.**
 - [ ] `name` is ≤80 chars and human-readable
 - [ ] `sender_kind` is set; `coworker_id` is present iff `sender_kind="coworker"`
 - [ ] No `SELECT *` to a public channel without a `LIMIT`
