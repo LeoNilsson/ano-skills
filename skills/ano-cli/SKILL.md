@@ -39,6 +39,14 @@ triggers:
   - run automation
   - automation runs
   - webhook setup
+  - connect to linear
+  - connect to gmail
+  - connect to notion
+  - connect to posthog
+  - connect to hubspot
+  - authorize service
+  - set up integration
+  - integrations connect
   - ano login
   - ano auth
   - ano connect
@@ -264,6 +272,8 @@ ano commands --json                 # Full command catalog
 | **Invites**                                                   |                                                                                                 |
 | Invite teammate                                               | `ano invite <email> [--expires-hours N]`                                                        |
 | Open invite (no email)                                        | `ano invite [--expires-hours N]`                                                                |
+| **Integrations (third-party OAuth)**                          |                                                                                                 |
+| Authorize a service (Linear, Gmail, Notion, PostHog, etc.)    | `ano integrations connect <app> --agent` (CLI v2.9.0+)                                          |
 | **Real-time**                                                 |                                                                                                 |
 | Start SSE bridge                                              | `ano connect`                                                                                   |
 | Bridge + agent mode                                           | `ano connect --openclaw <url>`                                                                  |
@@ -431,8 +441,47 @@ Building or managing an automation?
 ├── Pause / resume               → ano automation pause|resume <slug-or-id>
 ├── Webhook trigger setup        → ano automation webhook-setup <slug-or-id> --agent
 │   then activate to start firing → ano automation activate <slug-or-id> --agent
+├── Needs a third-party service  → ano integrations connect <app> --agent (CLI v2.9.0+)
+│   (Linear, Gmail, Notion, PostHog, etc. — see "Third-party connections" below)
 └── Delete (irreversible)        → ano automation delete <slug-or-id>
 ```
+
+#### Third-party connections (CLI v2.9.0+)
+
+When the automation needs to read or write a third-party service the
+user hasn't connected yet (any service in Pipedream's catalog —
+Linear, GitHub, Gmail, Notion, HubSpot, PostHog, Slack, Salesforce,
+etc.), ask them to authorize it BEFORE submitting the plan, otherwise
+`pipedream_run` will fail at fire time with a missing-connection error.
+
+```bash
+ano integrations connect posthog --agent
+```
+
+The CLI returns a Pipedream OAuth URL. Surface it to the user as a
+clickable link (the styled output already wraps it in OSC 8 for
+terminals that support it; the `--agent` JSON envelope contains
+`auth_url` for orchestrators that render their own UI). Once the user
+finishes the OAuth in their browser, Pipedream calls back to Ano and
+the connection is persisted automatically. The `expected_connection_name`
+field tells you the deterministic name the persisted row will carry
+(`pipedream:<app>:<userId>`) — useful for polling
+`/api/connections?workspace_id=…` to detect completion before
+submitting an automation that depends on it.
+
+When composing the plan, the `automation_connections` row this creates
+is referenceable from `sql_query` / `http_request` actions by its
+`name` (`pipedream:<app>:<userId>`) — the engine looks the credential
+up by that name at fire time.
+
+> ⚠ **Engine-callable `pipedream_run` action is NOT live yet.** The
+> connection persists, but the engine doesn't have a dedicated
+> `pipedream_run` tool wired in — for now, use `http_request` against
+> the third-party API directly with the connection's OAuth token. The
+> dedicated action will land in a follow-up; until then,
+> `ano integrations connect` is most useful for services the user wants
+> Claude Code (the agent) to talk to via `ANO_REQUEST_CONNECTION` /
+> `PIPEDREAM_RUN`, not for the automation engine.
 
 #### Webhook automations are minted in stub mode (CLI v2.8.2+)
 
@@ -804,6 +853,14 @@ automation engine resolves):
 | `sql_query`    | `{ connection: "<connection_name>", query: "SELECT ..." }`                    | `{{stepN.rows}}` (array)       |
 | `http_request` | `{ connection?: "<name>", method: "GET"\|"POST"\|..., url, headers?, body? }` | `{{stepN.body}}` (parsed JSON) |
 | `run_skill`    | `{ skill_id, args }`                                                          | `{{stepN.output}}`             |
+
+For third-party services that don't have a stable HTTP API the user
+wants to hand-write — Linear, Gmail, Notion, HubSpot, etc. — use
+`http_request` with the OAuth-managed connection that
+`ano integrations connect <app>` produces (see the "Third-party
+connections" decision-tree subsection). A dedicated `pipedream_run`
+action that hides the HTTP shape entirely is planned but not yet engine-
+callable; track it in the Ano monorepo.
 
 **Template variables (chaining):** earlier-step outputs are interpolated
 into later-step args using `{{stepN.PATH}}`:
