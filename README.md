@@ -14,6 +14,7 @@ claude plugin install @ano-chat/skills
 
 - `ano-cli`: how Claude Code uses the [`ano` CLI](https://www.npmjs.com/package/@ano-chat/cli)
 - `ano-payloads`: how Claude Code reads `<ano_payload>` blocks from the Ano desktop app
+- `ano-session`: records each Claude Code session in the workspace's Agent Status list (when the user has opted their machine in via `ano session enable`)
 
 ## Use It
 

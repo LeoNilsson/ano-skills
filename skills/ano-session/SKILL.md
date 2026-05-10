@@ -11,13 +11,11 @@ description: |
   per Claude Code session — no continuous noise. See "One-shot rule" below.
 triggers:
   - claude code session
-  - working on
   - new branch
   - new worktree
-  - starting work
-  - made progress
-  - finished
-  - shipping
+  - agent status
+  - workstream
+  - ano session
 invocable: false
 ---
 
