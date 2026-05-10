@@ -1,0 +1,23 @@
+{
+  "name": "skill-ano-session",
+  "version": "1.0.0",
+  "description": "Record agent sessions in Ano's Agent Status list — visibility into who's running what, in real time.",
+  "keywords": [
+    "ano",
+    "agent",
+    "session",
+    "status",
+    "workstream"
+  ],
+  "openclaw": {
+    "skill": true,
+    "triggers": [
+      "claude code session",
+      "ano session start",
+      "ano session update",
+      "ano session end",
+      "agent status",
+      "workstream"
+    ]
+  }
+}
