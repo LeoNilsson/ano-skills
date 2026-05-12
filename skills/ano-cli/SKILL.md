@@ -128,8 +128,13 @@ fallback for environments without the CLI installed.
    Use `--agent` for raw JSON; `--json` for envelope with breadcrumbs.
 2. **Never fabricate IDs.** Channel/user/message IDs are UUIDs. Get them from
    `ano channels list --agent` or `ano users list --agent` first.
-3. **Resolve by name before acting.** "Post in #general" → list channels, find
-   the ID, then send. "DM Leo" → list users, find the ID, then send.
+3. **Prefer one-shot name resolution over list-then-act.** For sends, use
+   `--channel-name <name>` (CLI ≥2.12.0): the server resolves and inserts in
+   one call. Same for DMs: pass `--to "Leo"` directly to `ano dm send`. **Do
+   NOT** call `ano channels list` / `ano users list` first if you only need
+   the ID for an immediate send — that doubles wall time. List/lookup is
+   only correct when you need other channel/user metadata before deciding.
+   If a `<ano_payload>` provided IDs, use them directly — don't look up.
 4. **Respect rate limits.** 60 requests/minute. Exit code 5 = rate limited.
    Wait 10+ seconds before retrying.
 5. **Check exit codes.** Non-zero = failure. Parse the error envelope.
@@ -223,9 +228,10 @@ ano commands --json                 # Full command catalog
 | Search (limited)                                              | `ano messages search "query" --limit 5 --agent`                                                                                    |
 | Show URL content                                              | `ano show <url> --agent`                                                                                                           |
 | **Write**                                                     |                                                                                                                                    |
-| Send message                                                  | `ano messages send "text" --channel <id> --agent`                                                                                  |
+| Send message (preferred)                                      | `ano messages send "text" --channel-name engineering --agent`                                                                      |
+| Send message (by ID)                                          | `ano messages send "text" --channel <id> --agent`                                                                                  |
 | Reply in thread                                               | `ano messages send "text" --channel <id> --thread <msg_id> --agent`                                                                |
-| Send with @mention                                            | `ano messages send "text" --channel <id> --mention <user_id> --agent`                                                              |
+| Send with @mention                                            | `ano messages send "text" --channel-name engineering --mention <user_id> --agent`                                                  |
 | Send DM (by name)                                             | `ano dm send "text" --to "Name" --agent`                                                                                           |
 | Send DM (by email)                                            | `ano dm send "text" --email user@co.com --agent`                                                                                   |
 | Send DM (by ID)                                               | `ano dm send "text" --user-id <id> --agent`                                                                                        |
@@ -408,10 +414,11 @@ Need to find something?
 
 ```
 Want to send something?
-├── To a channel → ano messages send "text" --channel <id> --agent
-├── Reply in thread → add --thread <msg_id>
-├── With @mention → add --mention <user_id>
-└── DM someone → ano dm send "text" --to "Name" --agent
+├── To a channel by name → ano messages send "text" --channel-name engineering --agent  ← preferred (1 round trip)
+├── To a channel by id   → ano messages send "text" --channel <id> --agent              ← when ID known (e.g. from <ano_payload>)
+├── Reply in thread      → add --thread <msg_id>
+├── With @mention        → add --mention <user_id>
+└── DM someone           → ano dm send "text" --to "Name" --agent                       ← also one round trip
 ```
 
 ### Working with Tables
@@ -655,9 +662,17 @@ settings.
 
 ## Common Workflows
 
+### Post in a known channel — preferred one-shot pattern
+
+```bash
+# Single call. The server resolves "engineering" → id atomically with the insert.
+ano messages send "Here's my analysis..." --channel-name engineering --agent
+```
+
 ### Read a channel and reply
 
 ```bash
+# Read still needs the id; resolve once via list, then reuse it for read + send.
 channels=$(ano channels list --agent)
 # Parse to find channel ID for "general"
 messages=$(ano messages read --channel "$CHANNEL_ID" --limit 20 --agent)
