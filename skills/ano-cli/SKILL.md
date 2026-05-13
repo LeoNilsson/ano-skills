@@ -18,6 +18,14 @@ triggers:
   - dm multiple people
   - dm a group
   - message a group
+  - share a file
+  - attach file
+  - send file
+  - send screenshot
+  - upload file
+  - upload screenshot
+  - share screenshot
+  - send screenshot to channel
   - list channels
   - show channels
   - list users
@@ -242,6 +250,10 @@ ano commands --json                 # Full command catalog
 | Send group DM (by names)                                      | `ano dm send "text" --to "Alice" --to "Bob" --agent` (CLI v2.17.0+)                                                                |
 | Send group DM (comma form)                                    | `ano dm send "text" --to "Alice,Bob,Carol" --agent`                                                                                |
 | Send group DM (mixed name + id)                               | `ano dm send "text" --to "Alice" --user-id <id> --agent`                                                                           |
+| Send with file attachment                                     | `ano messages send "see screenshot" --channel-name engineering --file ./bug.png --agent` (CLI v2.18.0+)                            |
+| Send screenshot only (empty caption)                          | `ano messages send "" --channel-name design --file ./shot.png --agent`                                                             |
+| Send multiple files                                           | `ano messages send "logs" -c <id> --file ./out.txt --file ./err.txt --agent`                                                       |
+| DM with file attachment                                       | `ano dm send "fyi" --to "Alice" --file ./report.pdf --agent`                                                                       |
 | **Tables**                                                    |                                                                                                                                    |
 | List tables                                                   | `ano tables list --agent`                                                                                                          |
 | Get table + schema                                            | `ano tables get <table-id> --agent`                                                                                                |
@@ -428,6 +440,7 @@ Want to send something?
 ├── To a channel by id   → ano messages send "text" --channel <id> --agent              ← when ID known (e.g. from <ano_payload>)
 ├── Reply in thread      → add --thread <msg_id>
 ├── With @mention        → add --mention <user_id>
+├── With file attached   → add --file ./path.png  (repeat for multiple; empty content OK)
 ├── DM someone           → ano dm send "text" --to "Name" --agent                       ← 1 round trip
 └── DM multiple people   → ano dm send "text" --to Alice --to Bob --to Carol --agent    ← group DM (Slack MPIM)
 ```
@@ -733,6 +746,40 @@ ano dm send "kick-off at 09:00" --to "Alice" --user-id usr_bob --agent
 1:1 DM (existing behaviour). `--email` stays 1:1-only. The result
 JSON has `"channel_type": "group_dm"` and `"recipients": [...]` so
 agents can tell apart from a regular DM.
+
+### Share a local file (CLI v2.18.0+)
+
+When the user asks to "share the screenshot at /tmp/bug.png" or
+"send Alice the build log", reach for `--file`. The flag works on
+both `messages send` and `dm send`; the CLI uploads each file to R2
+and posts the message + attachment row in one server-side
+transaction. Empty content is allowed when at least one `--file` is
+present (image-only sends).
+
+```bash
+# Single screenshot to a channel, with a caption
+ano messages send "see screenshot for the bug repro" \
+  --channel-name engineering --file ./bug.png --agent
+
+# Multiple files in one send
+ano messages send "logs from the failing run" \
+  -c <id> --file ./out.txt --file ./err.txt --agent
+
+# Image-only send (empty caption)
+ano messages send "" --channel-name design --file ./shot.png --agent
+
+# DM with attachment
+ano dm send "report attached" --to "Alice" --file ./report.pdf --agent
+```
+
+Per-file cap: 25 MB. Per-invocation total: 125 MB (pre-flight
+check). Supported types: images, video, audio, PDF, office docs,
+text, JSON, zip/tar/gz. The result includes `attachment_ids: [...]`
+so the agent can confirm the attachment row was written.
+
+If the user already has the file in clipboard / a known temp path,
+just call `--file` directly — no need to copy to a "shared" location
+first.
 
 ### Verify the CLI ↔ API path is healthy (`ano dev smoke`)
 
