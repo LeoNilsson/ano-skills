@@ -1269,12 +1269,43 @@ ano auth login --key ano_cwk_... --endpoint https://api-staging.ano.dev --profil
 └── config.json         # Project-level overrides (workspace_id, endpoint)
 ```
 
-| Env Variable       | Description                                 |
-| ------------------ | ------------------------------------------- |
-| `ANO_API_KEY`      | API key                                     |
-| `ANO_ENDPOINT`     | API endpoint (default: https://api.ano.dev) |
-| `ANO_WORKSPACE_ID` | Default workspace                           |
-| `NO_COLOR`         | Disable ANSI colors                         |
+| Env Variable             | Description                                                                |
+| ------------------------ | -------------------------------------------------------------------------- |
+| `ANO_API_KEY`            | API key                                                                    |
+| `ANO_ENDPOINT`           | API endpoint (default: https://api.ano.dev)                                |
+| `ANO_WORKSPACE_ID`       | Default workspace                                                          |
+| `ANO_PROFILE`            | Profile name from credentials.json (CLI v2.15.0+)                          |
+| `ANO_NO_AUTO_LOCAL`      | Set to `1` to disable monorepo auto-pick of `local` profile (CLI v2.16.0+) |
+| `ANO_QUIET_PROFILE_HINT` | Set to `1` to suppress the stderr hint when auto-pick fires                |
+| `NO_COLOR`               | Disable ANSI colors                                                        |
+
+### Profile auto-pick (CLI v2.16.0+)
+
+When the CLI is invoked from a CWD under a directory with a running
+`dev:local` stack (signal: `.ano/dev/postgres/postmaster.pid` exists
+in CWD or an ancestor), AND a `local` profile exists in
+`credentials.json`, the CLI uses `local` automatically instead of
+sending to `default` (typically staging).
+
+**It always prints the choice to stderr** so it's never invisible:
+
+```
+→ profile: local (auto — dev:local stack detected; pass --profile default to override)
+```
+
+**Read this hint.** If a CLI call writes data and the user doesn't see
+it appear where they expect, check the stderr line first — the
+operation may have hit a different env than they assumed. To force
+staging from inside the monorepo:
+
+```bash
+ano --profile default messages send "..." --channel-name design --agent
+# or
+ANO_PROFILE=default ano messages send "..." --channel-name design --agent
+```
+
+The auto-pick does NOT fire when `--profile`, `--key`, `ANO_API_KEY`,
+or a project `.ano/config.json` was set explicitly.
 
 ## Event Types (SSE Bridge)
 
