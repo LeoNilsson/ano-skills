@@ -14,6 +14,10 @@ triggers:
   - find messages
   - send dm
   - send direct message
+  - send group dm
+  - dm multiple people
+  - dm a group
+  - message a group
   - list channels
   - show channels
   - list users
@@ -235,6 +239,9 @@ ano commands --json                 # Full command catalog
 | Send DM (by name)                                             | `ano dm send "text" --to "Name" --agent`                                                                                           |
 | Send DM (by email)                                            | `ano dm send "text" --email user@co.com --agent`                                                                                   |
 | Send DM (by ID)                                               | `ano dm send "text" --user-id <id> --agent`                                                                                        |
+| Send group DM (by names)                                      | `ano dm send "text" --to "Alice" --to "Bob" --agent` (CLI v2.17.0+)                                                                |
+| Send group DM (comma form)                                    | `ano dm send "text" --to "Alice,Bob,Carol" --agent`                                                                                |
+| Send group DM (mixed name + id)                               | `ano dm send "text" --to "Alice" --user-id <id> --agent`                                                                           |
 | **Tables**                                                    |                                                                                                                                    |
 | List tables                                                   | `ano tables list --agent`                                                                                                          |
 | Get table + schema                                            | `ano tables get <table-id> --agent`                                                                                                |
@@ -421,7 +428,8 @@ Want to send something?
 ├── To a channel by id   → ano messages send "text" --channel <id> --agent              ← when ID known (e.g. from <ano_payload>)
 ├── Reply in thread      → add --thread <msg_id>
 ├── With @mention        → add --mention <user_id>
-└── DM someone           → ano dm send "text" --to "Name" --agent                       ← also one round trip
+├── DM someone           → ano dm send "text" --to "Name" --agent                       ← 1 round trip
+└── DM multiple people   → ano dm send "text" --to Alice --to Bob --to Carol --agent    ← group DM (Slack MPIM)
 ```
 
 ### Working with Tables
@@ -698,6 +706,33 @@ users=$(ano users list --agent)
 # Find user ID for "Jane"
 ano dm send "Can you review PR #42?" --to "Jane" --agent
 ```
+
+### Group DM (Slack-style MPIM, CLI v2.17.0+)
+
+When the user asks to "DM Alice and Bob" or "let Alice, Bob, and
+Carol know that …", reach for the multi-recipient form. The server
+finds-or-creates a single `group_dm` channel for that exact
+participant set and posts the message. Idempotent — same recipients
+forever land in the same channel (Slack convention; membership is
+immutable, you can't add/remove members later).
+
+```bash
+# Repeat the flag (preferred for clarity in agent scripts)
+ano dm send "ship gate at 17:00 — please confirm" \
+  --to "Alice" --to "Bob" --to "Carol" --agent
+
+# Comma-separated (terser)
+ano dm send "ship gate at 17:00" --to "Alice,Bob,Carol" --agent
+
+# Mix of names + ids — useful when you have one canonical id and one
+# friendly name from earlier output
+ano dm send "kick-off at 09:00" --to "Alice" --user-id usr_bob --agent
+```
+
+≥3 distinct members required (you + ≥2 others). Single recipient →
+1:1 DM (existing behaviour). `--email` stays 1:1-only. The result
+JSON has `"channel_type": "group_dm"` and `"recipients": [...]` so
+agents can tell apart from a regular DM.
 
 ### Verify the CLI ↔ API path is healthy (`ano dev smoke`)
 
