@@ -297,6 +297,9 @@ ano commands --json                 # Full command catalog
 | Remove service                                                | `ano connect uninstall-service --service-name <name-or-hash>`                                                                      |
 | **Diagnostics**                                               |                                                                                                                                    |
 | Full diagnostics                                              | `ano doctor --agent`                                                                                                               |
+| Smoke test (timed sweep of canonical ops)                     | `ano dev smoke --agent` (CLI v2.14.0+)                                                                                             |
+| Smoke test, read-only                                         | `ano dev smoke --no-write --agent`                                                                                                 |
+| Daemon status (warm process for fast CLI calls)               | `ano daemon status` (CLI v2.13.0+)                                                                                                 |
 | Command catalog                                               | `ano commands --json`                                                                                                              |
 | Setup Claude                                                  | `ano setup claude`                                                                                                                 |
 | Setup OpenClaw                                                | `ano setup openclaw`                                                                                                               |
@@ -695,6 +698,23 @@ users=$(ano users list --agent)
 # Find user ID for "Jane"
 ano dm send "Can you review PR #42?" --to "Jane" --agent
 ```
+
+### Verify the CLI ↔ API path is healthy (`ano dev smoke`)
+
+When the user reports the CLI feels broken, or you want to confirm a
+local dev stack is wired up, run a one-shot timed sweep instead of
+poking commands one at a time. CLI v2.14.0+.
+
+```bash
+ano dev smoke --agent              # 5 ops + timings + daemon state
+ano dev smoke --no-write --agent   # read-only (rate-limited envs)
+ano --profile local dev smoke      # against the local dev stack
+```
+
+JSON envelope on `--agent`/`--json`: `{ ok, steps[], total_ms, daemon, endpoint }`.
+Exit code is 0 on all-green, non-zero if any step failed. Pair with
+`ano doctor --agent` if a step fails — doctor explains _why_, smoke
+just measures _whether_.
 
 ### Archive an old channel
 
